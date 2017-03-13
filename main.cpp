@@ -1,5 +1,4 @@
 #include <iostream>
-#include <mutex>
 #include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
@@ -16,14 +15,8 @@
 
 using namespace std;
 
-#define WIDTH 1300
-#define HEIGHT 700
-#define lookSize 400
-
-typedef struct{
-    int x;
-    int y;
-} Point;
+#define HEIGHT 1250
+#define WIDTH 650
 
 struct fb_var_screeninfo vinfo;
 struct fb_fix_screeninfo finfo;
@@ -36,37 +29,28 @@ int posX;
 int posY;
 int lastCorrectState = 's';
 bool exploded = false;
-bool destroyed[WIDTH][HEIGHT];
 
-int redClipperMatrix[lookSize][lookSize];
-int greenClipperMatrix[lookSize][lookSize];
-int blueClipperMatrix[lookSize][lookSize];
+struct bullet
+{
+    int xStart;
+    int yStart;
+    int xEnd;
+    int yEnd;
+    float m;
+    float c;
+    int partisi;
+    int iteration;
+    int x1;
+    int x2;
+    int n;
+};
 
-int x_god;
-int y_god;
-
-int size_god;
-
-unsigned char* BMP;
-int BMP_width, BMP_height;
-
-bool pohon = true;
-bool jalan = true;
-
-void initDestroyed() {
-    for (int i = 0; i < WIDTH; ++i)
-    {
-        for (int j = 0; j < HEIGHT; ++j)
-        {
-            destroyed[i][j] = false;
-        }
-    }
-}
+vector<bullet> bullets;
 
 void clearMatrix() {
-    for (int i = 0; i < WIDTH; ++i)
+    for (int i = 0; i < 600; ++i)
     {
-        for (int j = 0; j < HEIGHT; ++j)
+        for (int j = 0; j < 1200; ++j)
         {
             redPixelMatrix[i][j] = 0;
             greenPixelMatrix[i][j] = 0;
@@ -75,37 +59,96 @@ void clearMatrix() {
     }
 }
 
-void clearClipperMatrix() {
-    for (int i = 0; i < 400; ++i)
-    {
-        for (int j = 0; j < 400; ++j)
-        {
-            redClipperMatrix[i][j] = 0;
-            greenClipperMatrix[i][j] = 0;
-            blueClipperMatrix[i][j] = 0;
-        }
-    }
-}
-
 void drawWhitePoint(int x1, int y1) {
-    if (x1 < 0 || x1 >= WIDTH || y1 < 0 || y1 >= HEIGHT) return;
     redPixelMatrix[x1][y1] = 255;
     greenPixelMatrix[x1][y1] = 255;
     bluePixelMatrix[x1][y1] = 255;
 }
 
-void drawYellowPoint(int x1,int y1){
-    if (x1 < 0 || x1 >= WIDTH || y1 < 0 || y1 >= HEIGHT) return;
+void drawRedPoint(int x1,int y1){
     redPixelMatrix[x1][y1] = 255;
-    greenPixelMatrix[x1][y1] = 255;
-    bluePixelMatrix[x1][y1] = 0;
+    greenPixelMatrix[x1][y1] = 0;
+    bluePixelMatrix[x1][y1] = 0;   
 }
 
 void drawBlackPoint(int x1,int y1){
-    if (x1 < 0 || x1 >= WIDTH || y1 < 0 || y1 >= HEIGHT) return;
     redPixelMatrix[x1][y1] = 0;
     greenPixelMatrix[x1][y1] = 0;
-    bluePixelMatrix[x1][y1] = 0;
+    bluePixelMatrix[x1][y1] = 0;   
+}
+
+void floodFill(int x,int y,int redBatas,int greenBatas,int blueBatas,int redColor,int greenColor,int blueColor){
+    if((x>=0 && x<WIDTH) && (y>=0 && y<HEIGHT)){
+        if(!((redPixelMatrix[x][y]==redBatas && greenPixelMatrix[x][y]==greenBatas && bluePixelMatrix[x][y]==blueBatas) || 
+            (redPixelMatrix[x][y]==redColor && greenPixelMatrix[x][y]==greenColor && bluePixelMatrix[x][y]==blueColor))){
+            redPixelMatrix[x][y] = redColor;
+            greenPixelMatrix[x][y] = greenColor;
+            bluePixelMatrix[x][y] = blueColor;
+            floodFill(x,y+1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
+            floodFill(x+1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
+            floodFill(x,y-1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
+            floodFill(x-1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
+        }
+    }
+}
+
+void drawSemiCircle(int x0, int y0, int radius)
+{
+    int x = radius;
+    int y = 0;
+    int err = 0;
+
+    while (x >= y)
+    {
+        drawWhitePoint(x0 - x, y0 + y);
+        drawWhitePoint(x0 - y, y0 + x); 
+        drawWhitePoint(x0 - y, y0 - x);
+        drawWhitePoint(x0 - x, y0 - y);
+
+        if (err <= 0)
+        {
+            y += 1;
+            err += 2*y + 1;
+        }
+        if (err > 0)
+        {
+            x -= 1;
+            err -= 2*x + 1;
+        }
+    }
+
+    //warnain 
+    floodFill(x0-5,y0,255,255,255,255,255,0);
+}
+
+void drawCircle(int x0, int y0, int radius)
+{
+    int x = radius;
+    int y = 0;
+    int err = 0;
+
+    while (x >= y)
+    {
+        drawWhitePoint(x0 - x, y0 + y);
+        drawWhitePoint(x0 - y, y0 + x); 
+        drawWhitePoint(x0 - y, y0 - x);
+        drawWhitePoint(x0 - x, y0 - y);
+        drawWhitePoint(x0 + x, y0 + y);
+        drawWhitePoint(x0 + y, y0 + x); 
+        drawWhitePoint(x0 + y, y0 - x);
+        drawWhitePoint(x0 + x, y0 - y);
+
+        if (err <= 0)
+        {
+            y += 1;
+            err += 2*y + 1;
+        }
+        if (err > 0)
+        {
+            x -= 1;
+            err -= 2*x + 1;
+        }
+    }
 }
 
 bool drawWhiteLine(int x1, int y1, int x2, int y2) {
@@ -133,11 +176,11 @@ bool drawWhiteLine(int x1, int y1, int x2, int y2) {
                 error -= deltaX;
                 y += iy;
             }
-
+ 
             error += deltaY;
             x += ix;
-
-
+ 
+            
             if (redPixelMatrix[x][y] == 255 && greenPixelMatrix[x][y] == 255 && bluePixelMatrix[x][y] == 255) {
                 ret = true;
             }
@@ -153,11 +196,11 @@ bool drawWhiteLine(int x1, int y1, int x2, int y2) {
                 error -= deltaY;
                 x += ix;
             }
-
+ 
             error += deltaX;
             y += iy;
-
-
+ 
+            
             if (redPixelMatrix[x][y] == 255 && greenPixelMatrix[x][y] == 255 && bluePixelMatrix[x][y] == 255) {
                 ret = true;
             }
@@ -191,10 +234,10 @@ void drawBlackLine(int x1, int y1, int x2, int y2) {
                 error -= deltaX;
                 y += iy;
             }
-
+ 
             error += deltaY;
             x += ix;
-
+ 
             drawBlackPoint(x, y);
         }
     } else {
@@ -207,17 +250,17 @@ void drawBlackLine(int x1, int y1, int x2, int y2) {
                 error -= deltaY;
                 x += ix;
             }
-
+ 
             error += deltaX;
             y += iy;
-
+ 
             drawBlackPoint(x, y);
         }
     }
 }
 
 
-void drawYellowLine(int x1, int y1, int x2, int y2) {
+void drawRedLine(int x1, int y1, int x2, int y2) {
     //Than kode lu gua benerin dikit di sini, harusnya ngk usah pake absolut
     int deltaX = x2 - x1;
     int deltaY = y2 - y1;
@@ -229,7 +272,7 @@ void drawYellowLine(int x1, int y1, int x2, int y2) {
     int x = x1;
     int y = y1;
 
-    drawYellowPoint(x,y);
+    drawRedPoint(x,y);
 
     if (deltaX >= deltaY) {
         int error = 2 * deltaY - deltaX;
@@ -240,11 +283,11 @@ void drawYellowLine(int x1, int y1, int x2, int y2) {
                 error -= deltaX;
                 y += iy;
             }
-
+ 
             error += deltaY;
             x += ix;
-
-            drawYellowPoint(x, y);
+ 
+            drawRedPoint(x, y);
         }
     } else {
         int error = 2 * deltaX - deltaY;
@@ -256,26 +299,11 @@ void drawYellowLine(int x1, int y1, int x2, int y2) {
                 error -= deltaY;
                 x += ix;
             }
-
+ 
             error += deltaX;
             y += iy;
-
-            drawYellowPoint(x, y);
-        }
-    }
-}
-
-void floodFill(int x,int y,int redBatas,int greenBatas,int blueBatas,int redColor,int greenColor,int blueColor){
-    if((x>=0 && x<WIDTH) && (y>=0 && y<HEIGHT)){
-        if(!((redPixelMatrix[x][y]==redBatas && greenPixelMatrix[x][y]==greenBatas && bluePixelMatrix[x][y]==blueBatas) ||
-            (redPixelMatrix[x][y]==redColor && greenPixelMatrix[x][y]==greenColor && bluePixelMatrix[x][y]==blueColor))){
-            redPixelMatrix[x][y] = redColor;
-            greenPixelMatrix[x][y] = greenColor;
-            bluePixelMatrix[x][y] = blueColor;
-            floodFill(x,y+1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
-            floodFill(x+1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
-            floodFill(x,y-1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
-            floodFill(x-1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
+ 
+            drawRedPoint(x, y);
         }
     }
 }
@@ -299,29 +327,70 @@ int detectKeyStroke() {
 
     int NByte;
     ioctl(STDIN, FIONREAD, &NByte);  // STDIN = 0
-
+    
     return NByte;
 }
 
+void drawShooter(int xp, int yp, char mode) {
+    //gambar tembakan dengan titik pusat lingkaran tembakan 
+    //(yp,xp)
+    switch (mode) {
+        case'd':
+        case 'D': {
+            posX = xp+50;
+            posY = yp-50;
+            drawCircle(yp,xp,25);
+            floodFill(yp, xp, 255, 255, 255, 255, 0, 0);
+            drawWhiteLine(yp,xp+25,yp-25,xp+50);
+            drawWhiteLine(yp-25,xp,yp-50,xp+25);
+            drawWhiteLine(yp-25,xp+50,yp-50,xp+25);            
+            floodFill(yp-30, xp+10, 255, 255, 255, 0, 0, 255);
+            break;
+        }
+            
+        case 's':
+        case 'S': {
+            posX = xp;
+            posY = 500;
+            drawCircle(yp,xp,25);
+            floodFill(yp, xp, 255, 255, 255, 255, 0, 0);
+            drawWhiteLine(yp-15,xp+20,yp-50,xp+20);
+            drawWhiteLine(yp-15,xp-20,yp-50,xp-20);
+            drawWhiteLine(yp-50,xp+20,yp-50,xp-20);
+            floodFill(yp-30, xp+10, 255, 255, 255, 0, 0, 255);
+            break;
+        }
+                    
 
-int screen_size;
+        case 'a':
+        case 'A': {
+            posX = xp-50;
+            posY = yp-50;
+            drawCircle(yp,xp,25);
+            floodFill(yp, xp, 255, 255, 255, 255, 0, 0);
+            drawWhiteLine(yp,xp-25,yp-25,xp-50);
+            drawWhiteLine(yp-25,xp,yp-50,xp-25);
+            drawWhiteLine(yp-25,xp-50,yp-50,xp-25);
+            floodFill(yp-25, xp-40, 255, 255, 255, 0, 0, 255);
+            break;
+        } 
+        default: {}
+    }
+}
+
 void DrawToScreen(){
     /* prosedure yang menggambar ke layar dari matriks RGB (harusnya rata tengah)*/
     long int location = 0;
     int x , y;
-    long int bmp_loc = 0;
-    for (y = 0; y < HEIGHT; y++)
-        for (x = 0; x < WIDTH; x++) {
+    for (y = vinfo.yres/2 - WIDTH/2; y < WIDTH + vinfo.yres/2 - WIDTH/2; y++)
+        for (x = vinfo.xres/2 - HEIGHT/2; x < HEIGHT + vinfo.xres/2 - HEIGHT/2; x++) {
             location = (x+vinfo.xoffset) * (vinfo.bits_per_pixel/8) + (y+vinfo.yoffset) * finfo.line_length;
-            if (vinfo.bits_per_pixel == 32) {
+            if (vinfo.bits_per_pixel == 32) { 
                 //4byte
-                // printf("%ld %d\n", location,  screen_size);
-                if (location < screen_size && location > 0) {
-                    *(fbp + location) = bluePixelMatrix[x][y];        // Some blue
-                    *(fbp + location + 1) = greenPixelMatrix[x][y];     // A little green
-                    *(fbp + location + 2) = redPixelMatrix[x][y];    // A lot of red
+                    *(fbp + location) = bluePixelMatrix[y - vinfo.yres/2 + WIDTH/2][x - vinfo.xres/2 + HEIGHT/2];        // Some blue
+                    *(fbp + location + 1) = greenPixelMatrix[y - vinfo.yres/2 + WIDTH/2][x - vinfo.xres/2 + HEIGHT/2];     // A little green
+                    *(fbp + location + 2) = redPixelMatrix[y - vinfo.yres/2 + WIDTH/2][x - vinfo.xres/2 + HEIGHT/2];    // A lot of red
                     *(fbp + location + 3) = 0;      // No transparency
-                }
             //location += 4;
             } else  { //assume 16bpp
                 int b = 0;
@@ -333,478 +402,168 @@ void DrawToScreen(){
         }
 }
 
+void drawExplosion(int x,int y){
+    //x = 70
+    // bentuk bintang ada 8 garis sesuai dengan parameter titik pusat (x,y)
+    int pointx1 = x-20, pointy1 =y+20;
+    int pointx3 = x+20, pointy3 =y+20;
+    int pointx5 = x+20, pointy5 =y-20;
+    int pointx7 = x-20, pointy7 =y-20;
 
+    int pointx2 = x, pointy2 = y+10;
+    int pointx4 = x+10, pointy4 = y;
+    int pointx6 = x, pointy6 = y-10;
+    int pointx8 = x-10, pointy8 = y;
 
-//Algoritma translasi point
-//x1 dan y1 adalah titik awal
-//dx dan dy adalah jarak translasi
-//Mengembalikan point hasil translasi
-Point pointTranslation(int x1, int y1, int x2, int y2, int dx, int dy){
-	Point retval;
-	retval.x=x1+dx;
-	retval.x=x1+dy;
-	return retval;
-}
-
-//Algoritma rotasi dengan x1 dan y1 sebagai titik pivot
-//Mengembalikan Point, yaitu titik baru hasil rotasi
-//Algoritma sama dengan prosedur lineRotation
-//Point hasil return bisa digunakan untuk drawLine ataupun drawPoint
-Point lineRotate(int x1, int y1, int x2, int y2, double derajatRotasi){
-	double degree;
-	//jarak dari origin
-	int xdiff=x1;
-	int ydiff=y1;
-	//mengubah sudut menjadi representasi yang sesuai
-	degree=(22*derajatRotasi)/(180*7);
-
-	x2=x2-xdiff;
-	y2=y2-ydiff;
-
-	//Titik akhir setelah rotasi
-	int x3,y3;
-	x3=((x2*cos(degree))-(y2*sin(degree)))+xdiff;
-	y3=((x2*sin(degree))+(y2*cos(degree)))+ydiff;
-	Point retval;
-	retval.x=x3;
-	retval.y=y3;
-	return retval;
-}
-
-
-//x1 dan y1 adalah titik pivot rotasi, alias titik yang akan diam saja
-//x2 dan y2 adalah titik yang dirotasi
-//Untuk sementara, algo dibuat untuk garis merah (menyesuaikan dengan
-//Algo yang ada sebelumnya)
-void lineRotation(int x1, int y1, int x2, int y2, double derajatRotasi){
-	double degree;
-	//jarak dari origin
-	int xdiff=x1;
-	int ydiff=y1;
-	//mengubah sudut menjadi representasi yang sesuai
-	degree=(22*derajatRotasi)/(180*7);
-
-	x2=x2-xdiff;
-	y2=y2-ydiff;
-
-	//Titik akhir setelah rotasi
-	int x3,y3;
-	x3=((x2*cos(degree))-(y2*sin(degree)))+xdiff;
-	y3=((x2*sin(degree))+(y2*cos(degree)))+ydiff;
-	drawWhiteLine(x1,y1,x3,y3);
-}
-
-//drawWhiteJalan(int x1, int y1, int x2, int y2) {}
-
-void DrawJalan2(int x, int y) {
-    drawWhiteLine(46,404,43,414);
-    drawWhiteLine(44,404,41,414);
-    drawWhiteLine(46,404,9,280);
-    drawWhiteLine(43,404,7,280);        
-    drawWhiteLine(45,407,151,377);
-    drawWhiteLine(45,403,151,373);
-    drawWhiteLine(151,376,148,414);
-    drawWhiteLine(151,376,181,372);
-    drawWhiteLine(181,373,287,403);
-    drawWhiteLine(181,371,287,401);
-    drawWhiteLine(288,402,288,414);
-    drawWhiteLine(285,402,285,414);
-    drawWhiteLine(287,404,356,404);
-    drawWhiteLine(287,401,356,401);
-
-    //itb kanan
-    drawWhiteLine(306,231,308,297);
-    drawWhiteLine(308,297,292,300);
-    drawWhiteLine(292,300,291,335);
-    drawWhiteLine(291,335,287,402);
-    drawWhiteLine(266,231,266,12);
-    drawWhiteLine(266,50,341,56);
-    drawWhiteLine(266,111,326,116);
-    drawWhiteLine(266,132,326,137);
-
-
-    //itb tengah
-    drawWhiteLine(184,372,184,335);
-    drawWhiteLine(178,372,178,335);
-    drawWhiteLine(181,337,71,337);
-    drawWhiteLine(181,333,71,333);
-    drawWhiteLine(184,335,184,231);
-    drawWhiteLine(178,335,178,231);
-    drawWhiteLine(181,233,58,233);
-    drawWhiteLine(181,230,58,230);
-
-    drawWhiteLine(58,231,23,231);
-    drawWhiteLine(181,231,306,231);
-    drawWhiteLine(181,335,291,335);
-    drawWhiteLine(181,231,181,160);
-    drawWhiteLine(181,160,181,83);
-    drawWhiteLine(181,29,181,16);
-    drawWhiteLine(80,16,181,16);
-    drawWhiteLine(181,16,219,1);
-
-
-    //itb kiri
-    drawWhiteLine(22,231,22,294);
-    drawWhiteLine(24,231,24,294);
-    drawWhiteLine(23,293,44,329);
-    drawWhiteLine(23,295,44,331);
-    drawWhiteLine(44,329,71,334);
-    drawWhiteLine(44,331,71,336);
-    drawWhiteLine(57,231,57,315);
-    drawWhiteLine(59,231,59,315);
-    drawWhiteLine(57,315,70,335);
-    drawWhiteLine(59,315,72,335);
-    drawWhiteLine(21,231,23,173);
-    drawWhiteLine(25,231,27,173);
-    drawWhiteLine(25,171,82,171);
-    drawWhiteLine(25,175,82,175);
-    drawWhiteLine(82,172,95,172);
-    drawWhiteLine(82,174,95,174);
-    drawWhiteLine(94,173,94,199);
-    drawWhiteLine(96,173,96,199);
-    drawWhiteLine(95,198,102,201);
-    drawWhiteLine(95,200,102,203);
-    drawWhiteLine(101,202,102,231);
-    drawWhiteLine(103,202,104,231);
-
-    drawWhiteLine(106,83,107,28);
-    drawWhiteLine(107,28,266,33);
-    drawWhiteLine(82,173,82,83);
-    drawWhiteLine(82,83,266,83);
-    drawWhiteLine(82,118,266,118);
-    drawWhiteLine(82,160,266,160);
-    drawWhiteLine(25,173,28,46);
-    drawWhiteLine(28,46,51,28);
-    drawWhiteLine(51,28,80,28);
-    drawWhiteLine(80,28,80,16);
-    drawWhiteLine(80,16,48,16);
-    drawWhiteLine(48,16,21,50);
-    drawWhiteLine(21,50,8,280);
-}
+    //gambar ledakan
+    drawRedLine(pointx1,pointy1,pointx2,pointy2);
+    drawRedLine(pointx2,pointy2,pointx3,pointy3);
+    drawRedLine(pointx3,pointy3,pointx4,pointy4);
+    drawRedLine(pointx4,pointy4,pointx5,pointy5);
+    drawRedLine(pointx5,pointy5,pointx6,pointy6);
+    drawRedLine(pointx6,pointy6,pointx7,pointy7);
+    drawRedLine(pointx7,pointy7,pointx8,pointy8);
+    drawRedLine(pointx8,pointy8,pointx1,pointy1);
     
-void DrawJalan(int x, int y) {
-    // Kelompok 1
-    // Garis kiri jalan tamansari (atas-bawah)i : 
-    drawWhiteLine(25, 355, 38, 397);
-    drawWhiteLine(38, 397, 37, 414);
-
-    // Garis kanan jalan tamansari-garis atas jalan ganesha kiri : 
-    drawWhiteLine(30, 354, 41, 393); 
-    drawWhiteLine(41, 393, 53, 398); 
-    drawWhiteLine(53, 398, 135,374); 
-    drawWhiteLine(135, 374, 171, 367); 
-    drawWhiteLine(171, 367, 172, 342); 
-
-    // Garis jalan ganesa bawah kiri : 
-    drawWhiteLine(50,  414, 58, 408);
-    drawWhiteLine(58,  408, 122, 386);
-    drawWhiteLine(122, 386, 135, 384);
-    drawWhiteLine(135, 384, 147, 395);
-    drawWhiteLine(147, 395, 146, 414);
-
-    // Pertigaan skanda (clockwise) : 
-    drawWhiteLine(145,384, 154,384); 
-    drawWhiteLine(154,384, 151,391); 
-    drawWhiteLine(151,391, 145,384);
-    
-    // Garis jalan ganesa bawah kanan : 
-    drawWhiteLine(151, 414, 155, 393); 
-    drawWhiteLine(155, 393, 165, 382); 
-    drawWhiteLine(165, 382, 200, 382); 
-    drawWhiteLine(200, 382, 247, 390); 
-    drawWhiteLine(247, 390, 285, 407); 
-    drawWhiteLine(285, 407, 285, 414); 
-
-    // Garis jalan kanan bawah :
-    drawWhiteLine(289, 414, 289,409);
-    drawWhiteLine(289, 409, 292,405);
-    drawWhiteLine(292, 405, 356,405);
-
-    // Garis jalan kanan atas : 
-    drawWhiteLine(293,337, 291,395);
-    drawWhiteLine(291,395, 356,397);
-
-    // Garis atas ganesha kanan : 
-    drawWhiteLine(189,255, 189,365);
-    drawWhiteLine(189,365, 195,372);
-    drawWhiteLine(195,372, 240,380);
-    drawWhiteLine(240,380, 285,395);
-    drawWhiteLine(285,395, 289,337);
-
-    // Kelompok 3
-
-    drawWhiteLine(246, 334, 288, 334); 
-    drawWhiteLine(288, 334, 288, 297); 
-    drawWhiteLine(288, 297, 307, 297); 
-
-    drawWhiteLine(246, 337, 288, 337); 
-    drawWhiteLine(288, 337, 288, 350);
-    drawWhiteLine(292, 337, 292, 301);
-    drawWhiteLine(292, 301, 307, 300);
-
-    // Kelompok 4 (307, 234), (315, 234), (311, 239), (311, 297), (307, 300), (307, 233)
-    drawWhiteLine(307, 234, 315, 234);
-    drawWhiteLine(315, 234, 311, 239);
-    drawWhiteLine(311, 239, 311, 297);
-    drawWhiteLine(311, 297, 307, 300);
-    drawWhiteLine(307, 300, 307, 300);
-    drawWhiteLine(307, 300, 307, 234);
-
-    drawWhiteLine(268,196, 302,196);    
-    drawWhiteLine(302,196, 302,199);
-    drawWhiteLine(302,199, 268,199);
-
-    drawWhiteLine(297,199, 302,199);
-    drawWhiteLine(302,199, 303,225);
-    drawWhiteLine(303,225, 297,225);
-
-
-
-
-    // Kelompok 6
-    drawWhiteLine(128,233, 173,233); 
-    drawWhiteLine(173,233, 176,235); 
-    drawWhiteLine(176,235, 176,308);
-
-    drawWhiteLine(176,290, 147,290); 
-    drawWhiteLine(147,290, 176,288); 
-    drawWhiteLine(176,288, 147,288);
-    drawWhiteLine(127,240, 125,240);
-    drawWhiteLine(125,240, 125,218);
-    drawWhiteLine(125,218, 127,218);
-
-
+    //warnain 
+    floodFill(x,y,255,0,0,255,255,0);
 }
 
+
+void drawExplosion2(int x,int y){
+    //x = 70
+    // bentuk bintang ada 8 garis sesuai dengan parameter titik pusat (x,y)
+    int pointx1 = x-20, pointy1 =y+20;
+    int pointx3 = x+30, pointy3 =y+30;
+    int pointx5 = x+20, pointy5 =y-20;
+    int pointx7 = x-30, pointy7 =y-30;
+
+    int pointx2 = x, pointy2 = y+15;
+    int pointx4 = x+10, pointy4 = y;
+    int pointx6 = x, pointy6 = y-10;
+    int pointx8 = x-15, pointy8 = y;
+
+    //gambar ledakan
+    drawRedLine(pointx1,pointy1,pointx2,pointy2);
+    drawRedLine(pointx2,pointy2,pointx3,pointy3);
+    drawRedLine(pointx3,pointy3,pointx4,pointy4);
+    drawRedLine(pointx4,pointy4,pointx5,pointy5);
+    drawRedLine(pointx5,pointy5,pointx6,pointy6);
+    drawRedLine(pointx6,pointy6,pointx7,pointy7);
+    drawRedLine(pointx7,pointy7,pointx8,pointy8);
+    drawRedLine(pointx8,pointy8,pointx1,pointy1);
+    
+    //warnain 
+    floodFill(x,y,255,0,0,255,0,0);
+}
+
+void drawUFO(int x1, int y1) {
+    drawWhiteLine(x1, y1, x1+20, y1+20);
+    drawWhiteLine(x1, y1, x1, y1-50);
+    drawWhiteLine(x1, y1-50, x1+20, y1-70);
+    drawWhiteLine(x1+20, y1-70, x1+20, y1+20);
+
+    floodFill(x1+5, y1, 255, 255, 255, 0, 255, 0);
+    
+    drawSemiCircle(x1, y1-25, 25);    
+}
+
+void drawStars() {
+    drawExplosion(400, 100);
+    drawExplosion(300, 200);
+    drawExplosion(500, 200);
+    drawExplosion(400, 300);
+    drawExplosion(300, 400);
+    drawExplosion(500, 400);
+    drawExplosion(400, 500);
+    drawExplosion(400, 700);
+    drawExplosion(300, 800);
+    drawExplosion(500, 800);
+    drawExplosion(400, 900);
+    drawExplosion(300, 1000);
+    drawExplosion(500, 1000);
+    drawExplosion(400, 1100);
+}
 
 void drawFrame() {
-    drawWhiteLine(0, 0, 1200, 0);
-    drawWhiteLine(1200, 0, 1200, 600);
-    drawWhiteLine(1200, 600, 0, 600);
-    drawWhiteLine(0, 600, 0, 0);
+    drawWhiteLine(0, 0, 0, 1200);
+    drawWhiteLine(0, 1200, 600, 1200);
+    drawWhiteLine(600, 1200, 600, 0);
+    drawWhiteLine(600, 0, 0, 0);
 }
 
+void addBullet(int x1, int y1, int x2, int y2 , int n)
+//x1,y1 titik asal peluru
+//x2,y2 titik sampai peluru
+//n adalah pembagian tahap gerak peluru
+{
+    bullet newBullet;
+    //persamaan garis
+    newBullet.m = (y2-y1);
+    newBullet.m /= (x2-x1);
+    newBullet.c = y1 - newBullet.m * x1;
 
-void clipper(int y, int x, int size) {
-    int i, j;
-
-    drawYellowLine(x-1,y-1,x+size,y-1);
-    drawYellowLine(x+size,y-1,x+size,y+size);
-    drawYellowLine(x+size,y+size,x-1,y+size);
-    drawYellowLine(x-1,y+size,x-1,y-1);
-
-    clearClipperMatrix();
-
-    for (i=0;i<lookSize;i++) {
-        for (j=0;j<lookSize;j++) {
-            redClipperMatrix[i][j] = redPixelMatrix[x+(i*size/lookSize)][y+(j*size/lookSize)];
-            greenClipperMatrix[i][j] = greenPixelMatrix[x+(i*size/lookSize)][y+(j*size/lookSize)];
-            blueClipperMatrix[i][j] = bluePixelMatrix[x+(i*size/lookSize)][y+(j*size/lookSize)];
-        }
-    }
-}
-
-
-void drawClips(int y, int x, int size) {
-    int i,j;
-
-    drawYellowLine(x-1,y-1,x+size,y-1);
-    drawYellowLine(x+size,y-1,x+size,y+size);
-    drawYellowLine(x+size,y+size,x-1,y+size);
-    drawYellowLine(x-1,y+size,x-1,y-1);
-
-    for (i=0;i<size;i++) {
-        for (j=0;j<size;j++) {
-            redPixelMatrix[x+i][y+j] = redClipperMatrix[i][j];
-            greenPixelMatrix[x+i][y+j] = greenClipperMatrix[i][j];
-            bluePixelMatrix[x+i][y+j] = blueClipperMatrix[i][j];
-        }
+    newBullet.partisi = 0;
+    for (int i=1;i<=n;i++) {
+        newBullet.partisi += i;
     }
 
+    newBullet.xStart = x1;
+    newBullet.yStart = (int) floor(newBullet.m * newBullet.xStart + newBullet.c + 0.5);
+    newBullet.xEnd = x1 + (x2-x1) * n / newBullet.partisi;
+    newBullet.yEnd = (int) floor(newBullet.m * newBullet.xEnd + newBullet.c + 0.5);
+
+    newBullet.x1 = x1;
+    newBullet.x2 = x2;
+    newBullet.iteration = n;
+    newBullet.n = n;
+
+    bullets.push_back(newBullet);
 }
 
-//
-//  pohon.cpp
-//  
-//
-//  Created by Raudi on 2/28/17.
-//
-//
+void drawKeyShooter(){
+    while(!exploded){
+        if(!detectKeyStroke()) {
+                char KeyPressed = getchar();
+                if ((KeyPressed=='A')||(KeyPressed=='a') ||(KeyPressed=='S') ||(KeyPressed=='s') ||(KeyPressed=='D') ||(KeyPressed=='d')) {
+                    lastCorrectState = KeyPressed;
+                } else if (KeyPressed==' ') {
 
-void drawGreenPoint(int x1,int y1){
-    if (x1 < 0 || x1 >= WIDTH || y1 < 0 || y1 >= HEIGHT) return;
-    redPixelMatrix[x1][y1] = 0;
-    greenPixelMatrix[x1][y1] = 255;
-    bluePixelMatrix[x1][y1] = 0;
-}
-
-
-void drawGreenLine(int x1, int y1, int x2, int y2) {
-    //Than kode lu gua benerin dikit di sini, harusnya ngk usah pake absolut
-    int deltaX = x2 - x1;
-    int deltaY = y2 - y1;
-    int ix = deltaX > 0 ? 1 : -1;
-    int iy = deltaY > 0 ? 1 : -1;
-    deltaX = abs(deltaX);
-    deltaY = abs(deltaY);
-    
-    int x = x1;
-    int y = y1;
-    
-    drawGreenPoint(x,y);
-    
-    if (deltaX >= deltaY) {
-        int error = 2 * deltaY - deltaX;
+                    if (lastCorrectState == 'a')
+                        addBullet(posY,posX,0,0,20);
+                    else if (lastCorrectState == 's')
+                        addBullet(posY,posX,0,600,20);
+                    else if (lastCorrectState == 'd')
+                        addBullet(posY,posX,0,1200,20);
+                
+            }
+        }
+    }
         
-        while (x != x2) {
-            if ((error >= 0) && (error || (ix > 0)))
-            {
-                error -= deltaX;
-                y += iy;
-            }
-            
-            error += deltaY;
-            x += ix;
-            
-            drawGreenPoint(x, y);
-        }
-    } else {
-        int error = 2 * deltaX - deltaY;
-        
-        while (y != y2)
-        {
-            if ((error >= 0) && (error || (iy > 0)))
-            {
-                error -= deltaY;
-                x += ix;
-            }
-            
-            error += deltaX;
-            y += iy;
-            
-            drawGreenPoint(x, y);
-        }
-    }
 }
 
-
-/*
- 
- misal size 5 kurang lebih gini
- | | |*| | |
- | |*| |*| |
- | |*| |*| |
- |*| | | |*|
- |*|*|*|*|*|
-
-*/
-void drawPohon(int x, int y, int size) {
-    drawGreenLine(x+size-1-(size-1)/2, y, x, y+size-1);
-    drawGreenLine(x+(size-1)/2, y, x+size-1, y+size-1);
-    drawGreenLine(x, y+size-1, x+size-1, y+size-1);
-    floodFill(x+(size-1)/2, y+(size-1)/2, 0,255,0,0,255,0);
-    
-}
-
-void drawAllPohon() {
-    drawPohon(21,14,10);
-    drawPohon(40,40,7);
-    drawPohon(40,54,7);
-    drawPohon(32,65,6);
-    drawPohon(32,54,7);
-    drawPohon(79,73,7);
-    drawPohon(88,62,11);
-    drawPohon(34,88,8);
-    drawPohon(34,102,8);
-    drawPohon(63,141,10);
-    drawPohon(128,89,10);
-    drawPohon(128,102,10);
-    drawPohon(128,125,10);
-    drawPohon(128,143,10);
-    drawPohon(38,179,13);
-    drawPohon(32,210,17);
-    drawPohon(194,16,10);
-    drawPohon(216,16,10);
-    drawPohon(233,16,10);
-    drawPohon(250,16,10);
-    drawPohon(317,16,29);
-    drawPohon(337,132,16);
-    drawPohon(251,123,10);
-    drawPohon(251,143,10);
-    drawPohon(251,88,10);
-    drawPohon(251,102,10);
-    drawPohon(333,176,19);
-    drawPohon(328,217,24);
-    drawPohon(316,262,32);
-    drawPohon(309,309,36);
-    drawPohon(276,87,12);
-}
-
-void cutDestroyed () {
-    for (int i = 0; i < WIDTH; ++i)
+void drawBullets() {
+    //persamaan garis
+    for (int i = bullets.size()-1; i >=0; --i)
     {
-        for (int j = 0; j < HEIGHT; ++j)
-        {
-            if (destroyed[i][j]) {
-                redPixelMatrix[i][j] = 0;
-                greenPixelMatrix[i][j] = 0;
-                bluePixelMatrix[i][j] = 0;
-            }
-        }
+        if (bullets[i].iteration >0) {
+            if (drawWhiteLine(bullets[i].xStart,bullets[i].yStart,bullets[i].xEnd,bullets[i].yEnd)) exploded = true;
+            bullets[i].xStart = bullets[i].xEnd;
+            bullets[i].yStart = bullets[i].yEnd;
+            bullets[i].xEnd = bullets[i].xStart + (bullets[i].x2 - bullets[i].x1) * (bullets[i].iteration - 1) / bullets[i].partisi;
+            bullets[i].yEnd = (int) floor(bullets[i].m * bullets[i].xEnd + bullets[i].c + 0.5);
+            bullets[i].iteration--;
+        }   
     }
 }
 
-void killMap() {
-    for (int i = y_god; i < y_god+size_god; ++i)
-    {
-        for (int j = x_god; j < x_god+size_god; ++j)
-        {
-            destroyed[i][j] = true;
-        }
-    }
-}
-
-void drawKeyClip(){
+int main() {
+    clearMatrix();    
     
-    while (!detectKeyStroke()) {
-        char KeyPressed = getchar();
-        if ((KeyPressed=='D') ||(KeyPressed=='d')) {
-            y_god++;
-        } else if ((KeyPressed=='A') ||(KeyPressed=='a')) {
-            y_god--;
-        } else if ((KeyPressed=='S') ||(KeyPressed=='s')) {
-            x_god++;
-        } else if ((KeyPressed=='W') ||(KeyPressed=='w')) {
-            x_god--;
-        } else if ((KeyPressed=='I') ||(KeyPressed=='i')) {
-            size_god--;
-        } else if ((KeyPressed=='O') ||(KeyPressed=='o')) {
-            size_god++;
-        } else if ((KeyPressed=='P') ||(KeyPressed=='p')) {
-            pohon = !pohon;
-        } else if ((KeyPressed=='J') ||(KeyPressed=='j')) {
-            jalan = !jalan;
-        } else if ((KeyPressed=='K') ||(KeyPressed=='k')) {
-            killMap();
-        } 
-    }
-}
-
-
-
-
-int main(int argc, char const *argv[]) {
-
-    clearMatrix();
-
     int fbfd = 0;
     long int screensize = 0;
-    bool exploded = false;
-
-    x_god = 50;
-    y_god = 50;
-    size_god = 100;
-
+    exploded = false;
+    
     fbfd = open("/dev/fb0", O_RDWR);
     if (fbfd == -1) {
         perror("Error: cannot open framebuffer device");
@@ -824,7 +583,6 @@ int main(int argc, char const *argv[]) {
 
     // mendapat screensize layar monitor
     screensize = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
-    screen_size = screensize;
 
     // Map the device to memory
     fbp = (char *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, (off_t)0);
@@ -832,44 +590,51 @@ int main(int argc, char const *argv[]) {
     //display merge center
     // Menulis ke layar tengah file
     //Gambar trapesium
-    thread thread1(drawKeyClip);
-
+    thread thread1(&drawKeyShooter);
     int xp = 600;
     int yp = 574;
     char KeyPressed;
 
-    int xawal = 100, yawal = 150;
+    int xawal = 100, yawal = 1180;
     bool left = true;
-
-    initDestroyed();
-
+    
     do {
         clearMatrix();
         drawFrame();
-/*
+        
         drawShooter(xp,yp,lastCorrectState);
-        drawShooter(xp,yp-150,lastCorrectState);
-        drawShooter(xp-200,yp,lastCorrectState);
-        drawShooter(xp-200,yp-150,lastCorrectState);
-*/
-        // draw Pohon
-        if (pohon)
-            drawAllPohon();
+        drawStars();
 
-        //draw jalan
-        if (jalan)
-            DrawJalan2(0,0);
+        // draw UFO
+        drawUFO(xawal, yawal);
+        if(yawal-70<=0) {
+            left = false;
+        } else if(yawal+20>=1200) {
+            left = true;
+        }
+        if (left) {
+            yawal -= 10;
+        } else {
+            yawal += 10;     
+        }
+        
+        // draw bullet
+        drawBullets(); 
 
-        cutDestroyed();        
-
-        clipper(x_god,y_god,size_god);
-        drawClips(50,750,lookSize);
-
-        DrawToScreen();
-    } while (KeyPressed!='C');
-
+        DrawToScreen(); 
+        usleep(50000);
+    } while (KeyPressed!='C' && !exploded);
+    thread1.detach();
+    clearMatrix();
+    drawFrame();
+    drawShooter(xp,yp,lastCorrectState);
+    drawStars();
+    drawExplosion2(xawal,yawal);
+    DrawToScreen();
+    
+    
     munmap(fbp, screensize);
     close(fbfd);
-
+    
     return 0;
 }
