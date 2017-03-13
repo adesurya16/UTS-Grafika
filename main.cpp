@@ -24,7 +24,7 @@ struct fb_var_screeninfo vinfo;
 struct fb_fix_screeninfo finfo;
 char *fbp = 0;
 
-
+int width;
 int xp, yp;
 int redPixelMatrix[WIDTH][HEIGHT];
 int greenPixelMatrix[WIDTH][HEIGHT];
@@ -293,6 +293,9 @@ void addBullet(int x1, int y1, int x2, int y2 , int n)
     //persamaan garis
     newBullet.m = (y2-y1);
     newBullet.m /= (x2-x1);
+    if(x2 - x1 == 0){
+        newBullet.m = 0;
+    }
     newBullet.c = y1 - newBullet.m * x1;
 
     newBullet.partisi = 0;
@@ -321,11 +324,16 @@ void drawKeyShooter() {
             if ((KeyPressed=='A')||(KeyPressed=='a')){
                 xp--;
             }else if ((KeyPressed=='D')||(KeyPressed=='d')){
-                xp++; cout << "cat" << endl;
-            }
+                xp++;
+            } else if ((KeyPressed=='W')||(KeyPressed=='w')){
+                width = width+5;
+            } else if ((KeyPressed=='Q')||(KeyPressed=='q')){
+                width = width-5;
+            } 
             else if (KeyPressed==' '){
-                addBullet(posX,posY,posX,100,20);
-                cout << posX << endl;
+                addBullet(posX,posY,xp+width,0,20);
+                addBullet(posX,posY,xp-width,0,20);
+                //cout << posX << endl;
             }
             else if ((KeyPressed=='P') || (KeyPressed=='p')) {
                 paused = true;
@@ -351,7 +359,7 @@ void drawBullets(FramePanel * fp) {
     for (int i = bullets.size()-1; i >=0; --i)
     {
         if (bullets[i].iteration >0) {
-            cout << bullets[i].xStart << " " << bullets[i].yStart << " "<< bullets[i].xEnd <<" " << bullets[i].yEnd << endl;
+            cout << bullets[i].xStart << " " << bullets[i].yStart << " " << bullets[i].xEnd << " " << bullets[i].yEnd << endl;
             if (drawWhiteLine(bullets[i].xStart,bullets[i].yStart,bullets[i].xEnd,bullets[i].yEnd, fp)) exploded = true;
             bullets[i].xStart = bullets[i].xEnd;
             bullets[i].yStart = bullets[i].yEnd;
@@ -442,6 +450,7 @@ int main() {
     
     xp = 600;
     yp = 574;
+    width = 30;
     char KeyPressed;
 
     int xawal = 100, yawal = 1180;
@@ -473,10 +482,19 @@ int main() {
     fb.Draw();
     int pause;
     for(;;){
+        while (getPaused()) {
+            if (!getPaused())
+                break;
+        }
         fb.EmptyFrame();
         for(int i = 0; i< vPoligon.size(); i++){
-            vPoligon[i].movePolygon(0,5);
+            if(pause > 10){
+                vPoligon[i].movePolygon(0,5);
+            }
             vPoligon[i].draw(&fb);
+        }
+        if(pause > 10 ){
+            pause  = 0;
         }
         cout << "p2" << endl;
         drawShooter(xp,yp,lastCorrectState, &fb);
@@ -484,6 +502,7 @@ int main() {
         cout << "p1" << endl;
         fb.Draw();
         usleep(100);
+        pause++;
     }
     
 /*
