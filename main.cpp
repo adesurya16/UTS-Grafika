@@ -22,6 +22,7 @@ struct fb_var_screeninfo vinfo;
 struct fb_fix_screeninfo finfo;
 char *fbp = 0;
 
+int xp, yp;
 int redPixelMatrix[WIDTH][HEIGHT];
 int greenPixelMatrix[WIDTH][HEIGHT];
 int bluePixelMatrix[WIDTH][HEIGHT];
@@ -152,7 +153,7 @@ void drawCircle(int x0, int y0, int radius)
 }
 
 bool drawWhiteLine(int x1, int y1, int x2, int y2) {
-	//Than kode lu gua benerin dikit di sini, harusnya ngk usah pake absolut
+    //Than kode lu gua benerin dikit di sini, harusnya ngk usah pake absolut
     bool ret = false;
 
     int deltaX = x2 - x1;
@@ -334,48 +335,16 @@ int detectKeyStroke() {
 void drawShooter(int xp, int yp, char mode) {
     //gambar tembakan dengan titik pusat lingkaran tembakan 
     //(yp,xp)
-    switch (mode) {
-        case'd':
-        case 'D': {
-            posX = xp+50;
-            posY = yp-50;
-            drawCircle(yp,xp,25);
-            floodFill(yp, xp, 255, 255, 255, 255, 0, 0);
-            drawWhiteLine(yp,xp+25,yp-25,xp+50);
-            drawWhiteLine(yp-25,xp,yp-50,xp+25);
-            drawWhiteLine(yp-25,xp+50,yp-50,xp+25);            
-            floodFill(yp-30, xp+10, 255, 255, 255, 0, 0, 255);
-            break;
-        }
-            
-        case 's':
-        case 'S': {
-            posX = xp;
-            posY = 500;
-            drawCircle(yp,xp,25);
-            floodFill(yp, xp, 255, 255, 255, 255, 0, 0);
-            drawWhiteLine(yp-15,xp+20,yp-50,xp+20);
-            drawWhiteLine(yp-15,xp-20,yp-50,xp-20);
-            drawWhiteLine(yp-50,xp+20,yp-50,xp-20);
-            floodFill(yp-30, xp+10, 255, 255, 255, 0, 0, 255);
-            break;
-        }
-                    
-
-        case 'a':
-        case 'A': {
-            posX = xp-50;
-            posY = yp-50;
-            drawCircle(yp,xp,25);
-            floodFill(yp, xp, 255, 255, 255, 255, 0, 0);
-            drawWhiteLine(yp,xp-25,yp-25,xp-50);
-            drawWhiteLine(yp-25,xp,yp-50,xp-25);
-            drawWhiteLine(yp-25,xp-50,yp-50,xp-25);
-            floodFill(yp-25, xp-40, 255, 255, 255, 0, 0, 255);
-            break;
-        } 
-        default: {}
-    }
+    
+    posX = xp;
+    posY = 500;
+    drawCircle(yp,xp,25);
+    floodFill(yp, xp, 255, 255, 255, 255, 0, 0);
+    drawWhiteLine(yp-15,xp+20,yp-50,xp+20);
+    drawWhiteLine(yp-15,xp-20,yp-50,xp-20);
+    drawWhiteLine(yp-50,xp+20,yp-50,xp-20);
+    floodFill(yp-30, xp+10, 255, 255, 255, 0, 0, 255);
+    
 }
 
 void DrawToScreen(){
@@ -521,25 +490,18 @@ void addBullet(int x1, int y1, int x2, int y2 , int n)
     bullets.push_back(newBullet);
 }
 
-void drawKeyShooter(){
-    while(!exploded){
+void drawKeyShooter() {
+    while(!exploded) {
         if(!detectKeyStroke()) {
-                char KeyPressed = getchar();
-                if ((KeyPressed=='A')||(KeyPressed=='a') ||(KeyPressed=='S') ||(KeyPressed=='s') ||(KeyPressed=='D') ||(KeyPressed=='d')) {
-                    lastCorrectState = KeyPressed;
-                } else if (KeyPressed==' ') {
-
-                    if (lastCorrectState == 'a')
-                        addBullet(posY,posX,0,0,20);
-                    else if (lastCorrectState == 's')
-                        addBullet(posY,posX,0,600,20);
-                    else if (lastCorrectState == 'd')
-                        addBullet(posY,posX,0,1200,20);
-                
-            }
+            char KeyPressed = getchar();
+            if ((KeyPressed=='A')||(KeyPressed=='a'))
+                xp--;
+            else if ((KeyPressed=='D')||(KeyPressed=='d'))
+                xp++;
+            else if (KeyPressed==' ')
+                addBullet(posY,posX,0,xp,20);
         }
     }
-        
 }
 
 void drawBullets() {
@@ -591,8 +553,8 @@ int main() {
     // Menulis ke layar tengah file
     //Gambar trapesium
     thread thread1(&drawKeyShooter);
-    int xp = 600;
-    int yp = 574;
+    xp = 600;
+    yp = 574;
     char KeyPressed;
 
     int xawal = 100, yawal = 1180;
