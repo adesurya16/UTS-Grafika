@@ -12,6 +12,8 @@
 #include <math.h>
 #include <thread>
 #include <vector>
+#include "poligon.h"
+#include "parser.h"
 
 using namespace std;
 
@@ -558,34 +560,11 @@ void drawBullets() {
 }
 
 int main() {
-    clearMatrix();    
-    
-    int fbfd = 0;
-    long int screensize = 0;
-    exploded = false;
-    
-    fbfd = open("/dev/fb0", O_RDWR);
-    if (fbfd == -1) {
-        perror("Error: cannot open framebuffer device");
-        exit(1);
-    }
-
-    // Get fixed screen information
-    if (ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo) == -1) {
-        perror("Error reading fixed information");
-        exit(2);
-    }
-    // Get variable screen information
-    if (ioctl(fbfd, FBIOGET_VSCREENINFO, &vinfo) == -1) {
-        perror("Error reading variable information");
-        exit(3);
-    }
-
+    Framebuffer fb;
     // mendapat screensize layar monitor
-    screensize = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
 
     // Map the device to memory
-    fbp = (char *)mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, (off_t)0);
+    fbp = fb.getfbp();
 
     //display merge center
     // Menulis ke layar tengah file
@@ -597,6 +576,44 @@ int main() {
 
     int xawal = 100, yawal = 1180;
     bool left = true;
+    
+    //Read Data
+    Parser parse;
+    parse.parseAdi("banguna");
+    std::vector<std::vector<Point>> mPoint;
+    std::vector<Poligon> vPoligon;
+    mPoint = parse.getPoints();
+    for(int i = 0; i < mPoint.size(); i++){
+        int xmin, xmax, ymin, ymax;
+        xmin = mPoint[i][0].getX();
+        xmax = mPoint[i][0].getY();
+        ymin = mPoint[i][1].getX();
+        ymax = mPoint[i][1].getY();
+        Poligon * temp = new Poligon();
+        (*temp).drawRectangleFromMinMax(xmin, xmax, ymin, ymax);
+
+        vPoligon.push_back((*temp));
+    }
+
+    /*Debug
+    for(int i = 0; i< vPoligon.size(); i++){
+        vPoligon[i].printPolygon();
+        vPoligon[i].draw(&fb);
+    }*/
+
+    fb.Draw();
+    int pause;
+    for(;;){
+        fb.EmptyFrame();
+        for(int i = 0; i< vPoligon.size(); i++){
+            vPoligon[i].movePolygon(0,5);
+            vPoligon[i].draw(&fb);
+        }
+        fb.Draw();
+        usleep(100);
+    }
+    
+
     
     do {
         clearMatrix();
@@ -620,7 +637,6 @@ int main() {
         
         // draw bullet
         drawBullets(); 
-
         DrawToScreen(); 
         usleep(50000);
     } while (KeyPressed!='C' && !exploded);
@@ -633,8 +649,6 @@ int main() {
     DrawToScreen();
     
     
-    munmap(fbp, screensize);
-    close(fbfd);
     
     return 0;
 }
