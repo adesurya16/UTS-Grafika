@@ -61,6 +61,7 @@ class Poligon : public Shape
                 ax.setThickness(thickness);
                 ax.draw(a);
             }
+            floodFill((xmax-xmin)/2+xmin, (ymax-ymin)/2+ymin, a);
         }
 
        
@@ -137,6 +138,10 @@ class Poligon : public Shape
             for(int i = 0; i<arr_Line.size(); i++){
                 arr_Line[i].moveLine(dx, dy);
             }
+            xmin +=dx;
+            xmax +=dx;
+            ymin +=dy;
+            ymax +=dy;
         }
 
         void printPolygon(){
@@ -183,6 +188,22 @@ class Poligon : public Shape
             (*this).xmax = xmax;
             (*this).ymin = ymin;
             (*this).ymax = ymax;
+        }
+
+        void floodFill(int x,int y, FramePanel * frame){
+            if((x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)){
+                int pause;
+                if(!(((*frame).checkColor(LineColor.getR(), LineColor.getG(), LineColor.getB(), x, y)) || 
+                    ((*frame).checkColor(floodfill.getR(), floodfill.getG(), floodfill.getB(), x, y)))){
+                    if(x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)    
+                        (*frame).set(floodfill.getR(), floodfill.getG(), floodfill.getB(), x, y);
+                    floodFill(x,y+1, frame);
+                    floodFill(x+1,y, frame);
+                    floodFill(x,y-1, frame);
+                    floodFill(x-1,y, frame);
+                }
+
+            }
         }
 
     private:

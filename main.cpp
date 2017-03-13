@@ -24,6 +24,7 @@ struct fb_var_screeninfo vinfo;
 struct fb_fix_screeninfo finfo;
 char *fbp = 0;
 
+
 int xp, yp;
 int redPixelMatrix[WIDTH][HEIGHT];
 int greenPixelMatrix[WIDTH][HEIGHT];
@@ -63,10 +64,9 @@ void clearMatrix() {
     }
 }
 
-void drawWhitePoint(int x1, int y1) {
-    redPixelMatrix[x1][y1] = 255;
-    greenPixelMatrix[x1][y1] = 255;
-    bluePixelMatrix[x1][y1] = 255;
+void drawWhitePoint(int x1, int y1, FramePanel * fb) {
+    if(x1 < (*fb).getXSize() && y1 < (*fb).getYSize() && x1 > 0 && y1 > 0)
+        (*fb).set(255,255,255,x1, y1);
 }
 
 void drawRedPoint(int x1,int y1){
@@ -81,21 +81,26 @@ void drawBlackPoint(int x1,int y1){
     bluePixelMatrix[x1][y1] = 0;
 }
 
-void floodFill(int x,int y,int redBatas,int greenBatas,int blueBatas,int redColor,int greenColor,int blueColor){
-    if((x>=0 && x<WIDTH) && (y>=0 && y<HEIGHT)){
-        if(!((redPixelMatrix[x][y]==redBatas && greenPixelMatrix[x][y]==greenBatas && bluePixelMatrix[x][y]==blueBatas) ||
-            (redPixelMatrix[x][y]==redColor && greenPixelMatrix[x][y]==greenColor && bluePixelMatrix[x][y]==blueColor))){
-            redPixelMatrix[x][y] = redColor;
-            greenPixelMatrix[x][y] = greenColor;
-            bluePixelMatrix[x][y] = blueColor;
-            floodFill(x,y+1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
-            floodFill(x+1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
-            floodFill(x,y-1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
-            floodFill(x-1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor);
+void floodFill(int x,int y,int redBatas,int greenBatas,int blueBatas,int redColor,int greenColor,int blueColor, Framebuffer * frame){
+    if((x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)){
+        //(*frame).printColor(x,y);
+        //cout << "ini batas "<< greenBatas << " " << redBatas <<" " << blueBatas << endl;
+        //(*frame).Draw();
+        int pause;
+        //usleep(1000);
+        if(!(((*frame).checkColor(redBatas, greenBatas, blueBatas, x, y)) || 
+            ((*frame).checkColor(redColor, greenColor, blueColor, x, y)))){
+            if(x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)    
+                (*frame).set(redColor, greenColor, blueColor, x, y);
+            floodFill(x,y+1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
+            floodFill(x+1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
+            floodFill(x,y-1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
+            floodFill(x-1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
         }
+
     }
 }
-
+/*
 void drawSemiCircle(int x0, int y0, int radius)
 {
     int x = radius;
@@ -124,8 +129,8 @@ void drawSemiCircle(int x0, int y0, int radius)
     //warnain
     floodFill(x0-5,y0,255,255,255,255,255,0);
 }
-
-void drawCircle(int x0, int y0, int radius)
+*/
+void drawCircle(int x0, int y0, int radius, FramePanel * frame)
 {
     int x = radius;
     int y = 0;
@@ -133,14 +138,14 @@ void drawCircle(int x0, int y0, int radius)
 
     while (x >= y)
     {
-        drawWhitePoint(x0 - x, y0 + y);
-        drawWhitePoint(x0 - y, y0 + x);
-        drawWhitePoint(x0 - y, y0 - x);
-        drawWhitePoint(x0 - x, y0 - y);
-        drawWhitePoint(x0 + x, y0 + y);
-        drawWhitePoint(x0 + y, y0 + x);
-        drawWhitePoint(x0 + y, y0 - x);
-        drawWhitePoint(x0 + x, y0 - y);
+        drawWhitePoint(x0 - x, y0 + y, frame);
+        drawWhitePoint(x0 - y, y0 + x, frame);
+        drawWhitePoint(x0 - y, y0 - x, frame);
+        drawWhitePoint(x0 - x, y0 - y, frame);
+        drawWhitePoint(x0 + x, y0 + y, frame);
+        drawWhitePoint(x0 + y, y0 + x, frame);
+        drawWhitePoint(x0 + y, y0 - x, frame);
+        drawWhitePoint(x0 + x, y0 - y, frame);
 
         if (err <= 0)
         {
@@ -155,7 +160,7 @@ void drawCircle(int x0, int y0, int radius)
     }
 }
 
-bool drawWhiteLine(int x1, int y1, int x2, int y2) {
+bool drawWhiteLine(int x1, int y1, int x2, int y2, FramePanel * frame) {
     //Than kode lu gua benerin dikit di sini, harusnya ngk usah pake absolut
     bool ret = false;
 
@@ -169,7 +174,7 @@ bool drawWhiteLine(int x1, int y1, int x2, int y2) {
     int x = x1;
     int y = y1;
 
-    drawWhitePoint(x,y);
+    drawWhitePoint(x,y,frame);
 
     if (deltaX >= deltaY) {
         int error = 2 * deltaY - deltaX;
@@ -188,7 +193,7 @@ bool drawWhiteLine(int x1, int y1, int x2, int y2) {
             if (redPixelMatrix[x][y] == 255 && greenPixelMatrix[x][y] == 255 && bluePixelMatrix[x][y] == 255) {
                 ret = true;
             }
-            drawWhitePoint(x, y);
+            drawWhitePoint(x, y, frame);
         }
     } else {
         int error = 2 * deltaX - deltaY;
@@ -208,108 +213,10 @@ bool drawWhiteLine(int x1, int y1, int x2, int y2) {
             if (redPixelMatrix[x][y] == 255 && greenPixelMatrix[x][y] == 255 && bluePixelMatrix[x][y] == 255) {
                 ret = true;
             }
-            drawWhitePoint(x, y);
+            drawWhitePoint(x, y, frame);
         }
     }
     return ret;
-}
-
-
-void drawBlackLine(int x1, int y1, int x2, int y2) {
-    //Than kode lu gua benerin dikit di sini, harusnya ngk usah pake absolut
-    int deltaX = x2 - x1;
-    int deltaY = y2 - y1;
-    int ix = deltaX > 0 ? 1 : -1;
-    int iy = deltaY > 0 ? 1 : -1;
-    deltaX = abs(deltaX);
-    deltaY = abs(deltaY);
-
-    int x = x1;
-    int y = y1;
-
-    drawBlackPoint(x,y);
-
-    if (deltaX >= deltaY) {
-        int error = 2 * deltaY - deltaX;
-
-        while (x != x2) {
-            if ((error >= 0) && (error || (ix > 0)))
-            {
-                error -= deltaX;
-                y += iy;
-            }
-
-            error += deltaY;
-            x += ix;
-
-            drawBlackPoint(x, y);
-        }
-    } else {
-        int error = 2 * deltaX - deltaY;
-
-        while (y != y2)
-        {
-            if ((error >= 0) && (error || (iy > 0)))
-            {
-                error -= deltaY;
-                x += ix;
-            }
-
-            error += deltaX;
-            y += iy;
-
-            drawBlackPoint(x, y);
-        }
-    }
-}
-
-
-void drawRedLine(int x1, int y1, int x2, int y2) {
-    //Than kode lu gua benerin dikit di sini, harusnya ngk usah pake absolut
-    int deltaX = x2 - x1;
-    int deltaY = y2 - y1;
-    int ix = deltaX > 0 ? 1 : -1;
-    int iy = deltaY > 0 ? 1 : -1;
-    deltaX = abs(deltaX);
-    deltaY = abs(deltaY);
-
-    int x = x1;
-    int y = y1;
-
-    drawRedPoint(x,y);
-
-    if (deltaX >= deltaY) {
-        int error = 2 * deltaY - deltaX;
-
-        while (x != x2) {
-            if ((error >= 0) && (error || (ix > 0)))
-            {
-                error -= deltaX;
-                y += iy;
-            }
-
-            error += deltaY;
-            x += ix;
-
-            drawRedPoint(x, y);
-        }
-    } else {
-        int error = 2 * deltaX - deltaY;
-
-        while (y != y2)
-        {
-            if ((error >= 0) && (error || (iy > 0)))
-            {
-                error -= deltaY;
-                x += ix;
-            }
-
-            error += deltaX;
-            y += iy;
-
-            drawRedPoint(x, y);
-        }
-    }
 }
 
 int detectKeyStroke() {
@@ -335,18 +242,21 @@ int detectKeyStroke() {
     return NByte;
 }
 
-void drawShooter(int xp, int yp, char mode) {
+void drawShooter(int xp, int yp, char mode, Framebuffer * frame) {
     //gambar tembakan dengan titik pusat lingkaran tembakan
     //(yp,xp)
 
     posX = xp;
     posY = 500;
-    drawCircle(yp,xp,25);
-    floodFill(yp, xp, 255, 255, 255, 255, 0, 0);
-    drawWhiteLine(yp-15,xp+20,yp-50,xp+20);
-    drawWhiteLine(yp-15,xp-20,yp-50,xp-20);
-    drawWhiteLine(yp-50,xp+20,yp-50,xp-20);
-    floodFill(yp-30, xp+10, 255, 255, 255, 0, 0, 255);
+    drawCircle(xp,yp,25, frame);
+    cout << "p1.1" << endl;
+    floodFill(xp, yp, 255, 255, 255, 255, 0, 0, frame);
+    cout << "p1.2" << endl;
+    drawWhiteLine(xp+20,yp-15,xp+20,yp-50, frame);
+    drawWhiteLine(xp-20,yp-15,xp-20,yp-50, frame);
+    drawWhiteLine(xp+20,yp-50,xp-20,yp-50, frame);
+    cout << "p1.3" << endl;
+    floodFill(xp+10, yp-30, 255, 255, 255, 0, 0, 255, frame);
 
 }
 
@@ -372,96 +282,6 @@ void DrawToScreen(){
                 *((unsigned short int*)(fbp + location)) = t;
             }
         }
-}
-
-void drawExplosion(int x,int y){
-    //x = 70
-    // bentuk bintang ada 8 garis sesuai dengan parameter titik pusat (x,y)
-    int pointx1 = x-20, pointy1 =y+20;
-    int pointx3 = x+20, pointy3 =y+20;
-    int pointx5 = x+20, pointy5 =y-20;
-    int pointx7 = x-20, pointy7 =y-20;
-
-    int pointx2 = x, pointy2 = y+10;
-    int pointx4 = x+10, pointy4 = y;
-    int pointx6 = x, pointy6 = y-10;
-    int pointx8 = x-10, pointy8 = y;
-
-    //gambar ledakan
-    drawRedLine(pointx1,pointy1,pointx2,pointy2);
-    drawRedLine(pointx2,pointy2,pointx3,pointy3);
-    drawRedLine(pointx3,pointy3,pointx4,pointy4);
-    drawRedLine(pointx4,pointy4,pointx5,pointy5);
-    drawRedLine(pointx5,pointy5,pointx6,pointy6);
-    drawRedLine(pointx6,pointy6,pointx7,pointy7);
-    drawRedLine(pointx7,pointy7,pointx8,pointy8);
-    drawRedLine(pointx8,pointy8,pointx1,pointy1);
-
-    //warnain
-    floodFill(x,y,255,0,0,255,255,0);
-}
-
-
-void drawExplosion2(int x,int y){
-    //x = 70
-    // bentuk bintang ada 8 garis sesuai dengan parameter titik pusat (x,y)
-    int pointx1 = x-20, pointy1 =y+20;
-    int pointx3 = x+30, pointy3 =y+30;
-    int pointx5 = x+20, pointy5 =y-20;
-    int pointx7 = x-30, pointy7 =y-30;
-
-    int pointx2 = x, pointy2 = y+15;
-    int pointx4 = x+10, pointy4 = y;
-    int pointx6 = x, pointy6 = y-10;
-    int pointx8 = x-15, pointy8 = y;
-
-    //gambar ledakan
-    drawRedLine(pointx1,pointy1,pointx2,pointy2);
-    drawRedLine(pointx2,pointy2,pointx3,pointy3);
-    drawRedLine(pointx3,pointy3,pointx4,pointy4);
-    drawRedLine(pointx4,pointy4,pointx5,pointy5);
-    drawRedLine(pointx5,pointy5,pointx6,pointy6);
-    drawRedLine(pointx6,pointy6,pointx7,pointy7);
-    drawRedLine(pointx7,pointy7,pointx8,pointy8);
-    drawRedLine(pointx8,pointy8,pointx1,pointy1);
-
-    //warnain
-    floodFill(x,y,255,0,0,255,0,0);
-}
-
-void drawUFO(int x1, int y1) {
-    drawWhiteLine(x1, y1, x1+20, y1+20);
-    drawWhiteLine(x1, y1, x1, y1-50);
-    drawWhiteLine(x1, y1-50, x1+20, y1-70);
-    drawWhiteLine(x1+20, y1-70, x1+20, y1+20);
-
-    floodFill(x1+5, y1, 255, 255, 255, 0, 255, 0);
-
-    drawSemiCircle(x1, y1-25, 25);
-}
-
-void drawStars() {
-    drawExplosion(400, 100);
-    drawExplosion(300, 200);
-    drawExplosion(500, 200);
-    drawExplosion(400, 300);
-    drawExplosion(300, 400);
-    drawExplosion(500, 400);
-    drawExplosion(400, 500);
-    drawExplosion(400, 700);
-    drawExplosion(300, 800);
-    drawExplosion(500, 800);
-    drawExplosion(400, 900);
-    drawExplosion(300, 1000);
-    drawExplosion(500, 1000);
-    drawExplosion(400, 1100);
-}
-
-void drawFrame() {
-    drawWhiteLine(0, 0, 0, 1200);
-    drawWhiteLine(0, 1200, 600, 1200);
-    drawWhiteLine(600, 1200, 600, 0);
-    drawWhiteLine(600, 0, 0, 0);
 }
 
 void addBullet(int x1, int y1, int x2, int y2 , int n)
@@ -498,12 +318,15 @@ void drawKeyShooter() {
         if(!detectKeyStroke()) {
             char KeyPressed = getchar();
 
-            if ((KeyPressed=='A')||(KeyPressed=='a'))
+            if ((KeyPressed=='A')||(KeyPressed=='a')){
                 xp--;
-            else if ((KeyPressed=='D')||(KeyPressed=='d'))
-                xp++;
-            else if (KeyPressed==' ')
-                addBullet(posY,posX,0,xp,20);
+            }else if ((KeyPressed=='D')||(KeyPressed=='d')){
+                xp++; cout << "cat" << endl;
+            }
+            else if (KeyPressed==' '){
+                addBullet(posX,posY,posX,100,20);
+                cout << posX << endl;
+            }
             else if ((KeyPressed=='P') || (KeyPressed=='p')) {
                 paused = true;
                 while (paused) {
@@ -523,12 +346,13 @@ bool getPaused() {
     return paused;
 }
 
-void drawBullets() {
+void drawBullets(FramePanel * fp) {
     //persamaan garis
     for (int i = bullets.size()-1; i >=0; --i)
     {
         if (bullets[i].iteration >0) {
-            if (drawWhiteLine(bullets[i].xStart,bullets[i].yStart,bullets[i].xEnd,bullets[i].yEnd)) exploded = true;
+            cout << bullets[i].xStart << " " << bullets[i].yStart << " "<< bullets[i].xEnd <<" " << bullets[i].yEnd << endl;
+            if (drawWhiteLine(bullets[i].xStart,bullets[i].yStart,bullets[i].xEnd,bullets[i].yEnd, fp)) exploded = true;
             bullets[i].xStart = bullets[i].xEnd;
             bullets[i].yStart = bullets[i].yEnd;
             bullets[i].xEnd = bullets[i].xStart + (bullets[i].x2 - bullets[i].x1) * (bullets[i].iteration - 1) / bullets[i].partisi;
@@ -576,7 +400,7 @@ void moveBounce(double* x, double* y, double* vx, double* vy, int yground) {
   *vx= vx2;
   *vy = vy2;
 }
-
+/*
 void drawwheel(int x1,int y1,int r,double sudut){
 // r > 20
 //(0,)
@@ -603,26 +427,26 @@ void drawwheel(int x1,int y1,int r,double sudut){
 
 
 }
-
+*/
 int main() {
-    Framebuffer fb;
-
     // mendapat screensize layar monitor
 
     // Map the device to memory
+    Framebuffer fb;
     fbp = fb.getfbp();
 
     //display merge center
     // Menulis ke layar tengah file
     //Gambar trapesium
     thread thread1(&drawKeyShooter);
+    
     xp = 600;
     yp = 574;
     char KeyPressed;
 
     int xawal = 100, yawal = 1180;
     bool left = true;
-    
+
     //Read Data
     Parser parse;
     parse.parseAdi("banguna");
@@ -637,7 +461,6 @@ int main() {
         ymax = mPoint[i][1].getY();
         Poligon * temp = new Poligon();
         (*temp).drawRectangleFromMinMax(xmin, xmax, ymin, ymax);
-
         vPoligon.push_back((*temp));
     }
 
@@ -655,11 +478,15 @@ int main() {
             vPoligon[i].movePolygon(0,5);
             vPoligon[i].draw(&fb);
         }
+        cout << "p2" << endl;
+        drawShooter(xp,yp,lastCorrectState, &fb);
+        drawBullets(&fb); 
+        cout << "p1" << endl;
         fb.Draw();
         usleep(100);
     }
     
-
+/*
     do {
 
         while (getPaused()) {
@@ -693,14 +520,14 @@ int main() {
 
 
     } while (!exploded);
-
+*/
     thread1.detach();
-    clearMatrix();
-    drawFrame();
-    drawShooter(xp,yp,lastCorrectState);
-    drawStars();
-    drawExplosion2(xawal,yawal);
-    DrawToScreen();
+    //clearMatrix();
+    //drawFrame();
+    //drawShooter(xp,yp,lastCorrectState);
+    //drawStars();
+    //drawExplosion2(xawal,yawal);
+    //DrawToScreen();
 
     return 0;
 }

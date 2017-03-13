@@ -249,7 +249,7 @@ public:
         M[p.getX()][p.getY()] = c;
     }
 
-     void set(Color c, int x, int y){
+    void set(Color c, int x, int y){
         M[x][y] = c;
     }
 
@@ -267,6 +267,22 @@ public:
 
     Color get(int x, int y){
         return M[x][y];
+    }
+
+    bool checkColor(int r, int g, int b, int x, int y){
+    	if(x > sizex || y > sizey){
+    		//std::cout << "masuk" << std::endl;
+    		return false;
+    	}
+    	Color temp = M[x][y];
+    	if((char)r == temp.getR()){
+    		if((char)g == temp.getG()){
+    			if((char)b == temp.getB()){
+    				return true;
+    			}
+    		}
+    	}
+    	return false;
     }
 
     int getXSize(){
@@ -427,6 +443,11 @@ public:
                 setColor(0,0,0,i,j);
             }
         }
+    }
+
+    void printColor(int x,int y){
+    	Color temp = get(x, y);
+    	std::cout << (unsigned int)temp.getR() << " " << (unsigned int)temp.getG() << " " << (unsigned int)temp.getB() << std::endl;
     }
 
     void Draw(){
