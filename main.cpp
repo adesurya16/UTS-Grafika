@@ -29,6 +29,7 @@ int posX;
 int posY;
 int lastCorrectState = 's';
 bool exploded = false;
+bool paused = false;
 
 struct bullet
 {
@@ -524,22 +525,37 @@ void addBullet(int x1, int y1, int x2, int y2 , int n)
 void drawKeyShooter(){
     while(!exploded){
         if(!detectKeyStroke()) {
-                char KeyPressed = getchar();
-                if ((KeyPressed=='A')||(KeyPressed=='a') ||(KeyPressed=='S') ||(KeyPressed=='s') ||(KeyPressed=='D') ||(KeyPressed=='d')) {
-                    lastCorrectState = KeyPressed;
-                } else if (KeyPressed==' ') {
+            char KeyPressed = getchar();
+            if ((KeyPressed=='A')||(KeyPressed=='a') ||(KeyPressed=='S') ||(KeyPressed=='s') ||(KeyPressed=='D') ||(KeyPressed=='d')) {
+                lastCorrectState = KeyPressed;
+            } else if (KeyPressed==' ') {
 
-                    if (lastCorrectState == 'a')
-                        addBullet(posY,posX,0,0,20);
-                    else if (lastCorrectState == 's')
-                        addBullet(posY,posX,0,600,20);
-                    else if (lastCorrectState == 'd')
-                        addBullet(posY,posX,0,1200,20);
-                
+                if (lastCorrectState == 'a')
+                    addBullet(posY,posX,0,0,20);
+                else if (lastCorrectState == 's')
+                    addBullet(posY,posX,0,600,20);
+                else if (lastCorrectState == 'd')
+                    addBullet(posY,posX,0,1200,20);
+            
+            }
+            else if ((KeyPressed=='P') || (KeyPressed=='p')) {
+                paused = true;
+                while (paused) {
+                    if (!detectKeyStroke()) {
+                        char KeyPressed = getchar();    
+                        if ((KeyPressed=='P') || (KeyPressed=='p')) {
+                            paused = false;
+                        }
+                    }
+                }
             }
         }
     }
         
+}
+
+bool getPaused() {
+    return paused;
 }
 
 void drawBullets() {
@@ -599,6 +615,12 @@ int main() {
     bool left = true;
     
     do {
+
+        while (getPaused()) {
+            if (!getPaused()) 
+                break;
+        }
+
         clearMatrix();
         drawFrame();
         
@@ -623,7 +645,10 @@ int main() {
 
         DrawToScreen(); 
         usleep(50000);
-    } while (KeyPressed!='C' && !exploded);
+
+
+    } while (!exploded);
+
     thread1.detach();
     clearMatrix();
     drawFrame();
