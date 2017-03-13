@@ -495,18 +495,13 @@ void drawKeyShooter() {
     while(!exploded) {
         if(!detectKeyStroke()) {
             char KeyPressed = getchar();
-            if ((KeyPressed=='A')||(KeyPressed=='a') ||(KeyPressed=='S') ||(KeyPressed=='s') ||(KeyPressed=='D') ||(KeyPressed=='d')) {
-                lastCorrectState = KeyPressed;
-            } else if (KeyPressed==' ') {
-
-                if (lastCorrectState == 'a')
-                    addBullet(posY,posX,0,0,20);
-                else if (lastCorrectState == 's')
-                    addBullet(posY,posX,0,600,20);
-                else if (lastCorrectState == 'd')
-                    addBullet(posY,posX,0,1200,20);
             
-            }
+            if ((KeyPressed=='A')||(KeyPressed=='a'))
+                xp--;
+            else if ((KeyPressed=='D')||(KeyPressed=='d'))
+                xp++;
+            else if (KeyPressed==' ')
+                addBullet(posY,posX,0,xp,20);
             else if ((KeyPressed=='P') || (KeyPressed=='p')) {
                 paused = true;
                 while (paused) {
@@ -518,12 +513,6 @@ void drawKeyShooter() {
                     }
                 }
             }
-            if ((KeyPressed=='A')||(KeyPressed=='a'))
-                xp--;
-            else if ((KeyPressed=='D')||(KeyPressed=='d'))
-                xp++;
-            else if (KeyPressed==' ')
-                addBullet(posY,posX,0,xp,20);
         }
     }
 }
