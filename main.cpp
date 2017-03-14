@@ -88,9 +88,9 @@ void floodFill(int x,int y,int redBatas,int greenBatas,int blueBatas,int redColo
         //(*frame).Draw();
         int pause;
         //usleep(1000);
-        if(!(((*frame).checkColor(redBatas, greenBatas, blueBatas, x, y)) || 
+        if(!(((*frame).checkColor(redBatas, greenBatas, blueBatas, x, y)) ||
             ((*frame).checkColor(redColor, greenColor, blueColor, x, y)))){
-            if(x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)    
+            if(x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)
                 (*frame).set(redColor, greenColor, blueColor, x, y);
             floodFill(x,y+1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
             floodFill(x+1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
@@ -329,7 +329,7 @@ void drawKeyShooter() {
                 width = width+5;
             } else if ((KeyPressed=='Q')||(KeyPressed=='q')){
                 width = width-5;
-            } 
+            }
             else if (KeyPressed==' '){
                 addBullet(posX,posY,xp+width,0,20);
                 addBullet(posX,posY,xp-width,0,20);
@@ -436,18 +436,87 @@ void drawwheel(int x1,int y1,int r,double sudut){
 
 }
 */
+
+void drawGameOver(FramePanel* frame){
+  //  FILE *file;
+    int const rf = 300;
+    int const cf = 1000;
+    clearMatrix();
+    ifstream in_file;
+
+    in_file.open("gameoverBlue.txt");
+    if(in_file.fail())
+    {
+        std::cout << "File opening error" << endl;
+    }
+    else
+    {
+        for (unsigned int i = 0; i < rf; i++) {
+            for (unsigned int j = 0; j < cf; j++) {
+              in_file >> bluePixelMatrix[i][j];
+            }
+          }
+    }
+
+    in_file.close();
+
+    in_file.open("gameoverRed.txt");
+    if(in_file.fail())
+    {
+        cout << "File opening error" << endl;
+    }
+    else
+    {
+        for (unsigned int i = 0; i < rf; i++) {
+            for (unsigned int j = 0; j < cf; j++) {
+              in_file >> redPixelMatrix[i][j];
+            }
+          }
+    }
+
+    in_file.close();
+
+
+    in_file.open("gameoverGreen.txt");
+    if(in_file.fail())
+    {
+        cout << "File opening error" << endl;
+    }
+    else
+    {
+        for (unsigned int i = 0; i < rf; i++) {
+            for (unsigned int j = 0; j < cf; j++) {
+              in_file >> greenPixelMatrix[i][j];
+            }
+          }
+    }
+
+
+    for (unsigned int i = 0; i < rf; i++) {
+        for (unsigned int j = 0; j < cf; j++) {
+          frame->set((char)redPixelMatrix[i][j],(char)greenPixelMatrix[i][j],(char)bluePixelMatrix[i][j], i, j);
+        }
+      }
+
+    in_file.close();
+
+}
+
 int main() {
     // mendapat screensize layar monitor
 
     // Map the device to memory
     Framebuffer fb;
     fbp = fb.getfbp();
+    drawGameOver(&fb);
+    fb.Draw();
 
+/*
     //display merge center
     // Menulis ke layar tengah file
     //Gambar trapesium
     thread thread1(&drawKeyShooter);
-    
+
     xp = 600;
     yp = 574;
     width = 30;
@@ -478,7 +547,7 @@ int main() {
         vPoligon[i].printPolygon();
         vPoligon[i].draw(&fb);
     }*/
-
+/*
     fb.Draw();
     int pause;
     for(;;){
@@ -498,13 +567,13 @@ int main() {
         }
         cout << "p2" << endl;
         drawShooter(xp,yp,lastCorrectState, &fb);
-        drawBullets(&fb); 
+        drawBullets(&fb);
         cout << "p1" << endl;
         fb.Draw();
         usleep(100);
         pause++;
     }
-    
+
 /*
     do {
 
@@ -533,14 +602,14 @@ int main() {
         }
 
         // draw bullet
-        drawBullets(); 
-        DrawToScreen(); 
+        drawBullets();
+        DrawToScreen();
         usleep(50000);
 
 
     } while (!exploded);
 */
-    thread1.detach();
+//    thread1.detach();
     //clearMatrix();
     //drawFrame();
     //drawShooter(xp,yp,lastCorrectState);
