@@ -249,13 +249,10 @@ void drawShooter(int xp, int yp, char mode, Framebuffer * frame) {
     posX = xp;
     posY = 500;
     drawCircle(xp,yp,25, frame);
-    cout << "p1.1" << endl;
     floodFill(xp, yp, 255, 255, 255, 255, 0, 0, frame);
-    cout << "p1.2" << endl;
     drawWhiteLine(xp+20,yp-15,xp+20,yp-50, frame);
     drawWhiteLine(xp-20,yp-15,xp-20,yp-50, frame);
     drawWhiteLine(xp+20,yp-50,xp-20,yp-50, frame);
-    cout << "p1.3" << endl;
     floodFill(xp+10, yp-30, 255, 255, 255, 0, 0, 255, frame);
 
 }
@@ -356,16 +353,21 @@ bool getPaused() {
 
 void drawBullets(FramePanel * fp) {
     //persamaan garis
-    for (int i = bullets.size()-1; i >=0; --i)
+    std::vector<bullet>::iterator it;
+    for (it = bullets.begin(); it !=bullets.end();)
     {
-        if (bullets[i].iteration >0) {
-            cout << bullets[i].xStart << " " << bullets[i].yStart << " " << bullets[i].xEnd << " " << bullets[i].yEnd << endl;
-            if (drawWhiteLine(bullets[i].xStart,bullets[i].yStart,bullets[i].xEnd,bullets[i].yEnd, fp)) exploded = true;
-            bullets[i].xStart = bullets[i].xEnd;
-            bullets[i].yStart = bullets[i].yEnd;
-            bullets[i].xEnd = bullets[i].xStart + (bullets[i].x2 - bullets[i].x1) * (bullets[i].iteration - 1) / bullets[i].partisi;
-            bullets[i].yEnd = (int) floor(bullets[i].m * bullets[i].xEnd + bullets[i].c + 0.5);
-            bullets[i].iteration--;
+        if ((*it).iteration >0) {
+            if (drawWhiteLine((*it).xStart,(*it).yStart,(*it).xEnd,(*it).yEnd, fp)) exploded = true;
+            (*it).xStart = (*it).xEnd;
+            (*it).yStart = (*it).yEnd;
+            (*it).xEnd = (*it).xStart + ((*it).x2 - (*it).x1) * ((*it).iteration - 1) / (*it).partisi;
+            (*it).yEnd = (int) floor((*it).m * (*it).xEnd + (*it).c + 0.5);
+            (*it).iteration;
+        }
+        if(((*it).iteration == 0)){
+            it = bullets.erase(it);
+        }else{
+            it++;
         }
     }
 }
@@ -408,34 +410,7 @@ void moveBounce(double* x, double* y, double* vx, double* vy, int yground) {
   *vx= vx2;
   *vy = vy2;
 }
-/*
-void drawwheel(int x1,int y1,int r,double sudut){
-// r > 20
-//(0,)
 
-  int x2 = r-20;
-  int y2 = 0;
-
-  int x3 = 0;
-  int y3 = r-20;
-
-  int x22 = round(x2 * cos(sudut) - y2 * sin(sudut));
-  int y22 = round(x2 * sin(sudut) + y2 * cos(sudut));
-
-  int x32 = round(x3 * cos(sudut) - y3 * sin(sudut));
-  int y32 = round(x3 * sin(sudut) + y3 * cos(sudut));
-
-
-
-  drawCircle(x1,y1,r-20);
-  drawWhiteLine(x1+x22,y1+y22,x1-x22,y1-y22);
-  drawWhiteLine(x1+x32,y1+y32,x1-x32,y1-y32);
-
-//gambar 2 garis didalam roda
-
-
-}
-*/
 int main() {
     // mendapat screensize layar monitor
 
@@ -470,14 +445,9 @@ int main() {
         ymax = mPoint[i][1].getY();
         Poligon * temp = new Poligon();
         (*temp).drawRectangleFromMinMax(xmin, xmax, ymin, ymax);
+        (*temp).printPolygon();
         vPoligon.push_back((*temp));
     }
-
-    /*Debug
-    for(int i = 0; i< vPoligon.size(); i++){
-        vPoligon[i].printPolygon();
-        vPoligon[i].draw(&fb);
-    }*/
 
     fb.Draw();
     int pause;
@@ -487,66 +457,41 @@ int main() {
                 break;
         }
         fb.EmptyFrame();
-        for(int i = 0; i< vPoligon.size(); i++){
-            if(pause > 10){
-                vPoligon[i].movePolygon(0,5);
+        std::vector<Poligon>::iterator it = vPoligon.begin();
+        while(it != vPoligon.end()){
+            bool checkDraw = true;
+            if(pause > 5){
+                (*it).movePolygon(0,5);
             }
-            vPoligon[i].draw(&fb);
+            std::vector<bullet>::iterator itbullet = bullets.begin();
+            while(itbullet != bullets.end() && checkDraw != false){
+                if((*it).checkBitInsideRectangle((*itbullet).xEnd, (*itbullet).yEnd)){
+                    checkDraw = false;
+                    itbullet = bullets.erase(itbullet);
+                }else{
+                    itbullet++;
+                }
+            }
+            if(checkDraw == true){
+                (*it).draw(&fb);
+                int xo = ((*it).getxmax()-(*it).getxmin())/2+(*it).getxmin();
+                int yo = ((*it).getymax()-(*it).getymin())/2+(*it).getymin();
+                (*it).floodFill(xo, yo, &fb);
+                ++it;
+            }else{
+                it = vPoligon.erase(it);
+            }
         }
         if(pause > 10 ){
             pause  = 0;
         }
-        cout << "p2" << endl;
         drawShooter(xp,yp,lastCorrectState, &fb);
         drawBullets(&fb); 
-        cout << "p1" << endl;
         fb.Draw();
         usleep(100);
         pause++;
     }
-    
-/*
-    do {
-
-        while (getPaused()) {
-            if (!getPaused())
-                break;
-        }
-
-        clearMatrix();
-        drawFrame();
-
-        drawShooter(xp,yp,lastCorrectState);
-        drawStars();
-
-        // draw UFO
-        drawUFO(xawal, yawal);
-        if(yawal-70<=0) {
-            left = false;
-        } else if(yawal+20>=1200) {
-            left = true;
-        }
-        if (left) {
-            yawal -= 10;
-        } else {
-            yawal += 10;
-        }
-
-        // draw bullet
-        drawBullets(); 
-        DrawToScreen(); 
-        usleep(50000);
-
-
-    } while (!exploded);
-*/
     thread1.detach();
-    //clearMatrix();
-    //drawFrame();
-    //drawShooter(xp,yp,lastCorrectState);
-    //drawStars();
-    //drawExplosion2(xawal,yawal);
-    //DrawToScreen();
 
     return 0;
 }

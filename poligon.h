@@ -9,7 +9,7 @@ using namespace std;
 class Poligon : public Shape
 {
     public:
-        Poligon() : arr_Line(), thickness(1), floodfill(Color::BLUE), LineColor(Color::WHITE), xmin(0), xmax(0), ymin(0), ymax(0){}
+        Poligon() : arr_Line(), thickness(1), floodfill(Color::BLUE), LineColor(Color::WHITE), minmax(4){}
 
         Poligon(int Linethickness, Color floodfill, Color LineColor): arr_Line(){
             thickness = Linethickness;
@@ -17,8 +17,9 @@ class Poligon : public Shape
             (*this).LineColor = LineColor;
         }
 
-        Poligon& operator=(const Poligon& pol){
+        Poligon(const Poligon& pol){
             arr_Line.clear();
+            minmax.clear();
             thickness = pol.thickness;
             floodfill = pol.floodfill;
             LineColor = pol.LineColor;
@@ -27,8 +28,35 @@ class Poligon : public Shape
                 arr_Line.push_back(pol.arr_Line[i]);
             }
 
+            for(int i = 0; i<pol.minmax.size(); ++i){
+                minmax.push_back(pol.minmax[i]);
+            }
+        }
+
+        ~Poligon(){
+            vector<int>().swap(minmax); //for rectangle
+            vector<Line>().swap(arr_Line);
+        }
+
+        Poligon& operator=(const Poligon& pol){
+            arr_Line.clear();
+            minmax.clear();
+            thickness = pol.thickness;
+            floodfill = pol.floodfill;
+            LineColor = pol.LineColor;
+            for (int i = 0; i < pol.arr_Line.size(); ++i)
+            {
+                arr_Line.push_back(pol.arr_Line[i]);
+            }
+
+            for(int i = 0; i<pol.minmax.size(); ++i){
+                minmax.push_back(pol.minmax[i]);
+            }
+
             return (*this);
         }
+
+
 
         void add(Line a){
             a.setColor(LineColor);
@@ -54,6 +82,7 @@ class Poligon : public Shape
         }
 
         void draw(FramePanel* a){
+            //cout << "before" << endl;
             for(unsigned int i = 0;i<arr_Line.size();i++){
                 Line ax;
                 ax = arr_Line[i];
@@ -61,7 +90,8 @@ class Poligon : public Shape
                 ax.setThickness(thickness);
                 ax.draw(a);
             }
-            floodFill((xmax-xmin)/2+xmin, (ymax-ymin)/2+ymin, a);
+            //cout << "draw" << endl;
+           
         }
 
        
@@ -138,10 +168,10 @@ class Poligon : public Shape
             for(int i = 0; i<arr_Line.size(); i++){
                 arr_Line[i].moveLine(dx, dy);
             }
-            xmin +=dx;
-            xmax +=dx;
-            ymin +=dy;
-            ymax +=dy;
+            minmax[0] +=dx;
+            minmax[1] +=dx;
+            minmax[2] +=dy;
+            minmax[3] +=dy;
         }
 
         void printPolygon(){
@@ -149,6 +179,7 @@ class Poligon : public Shape
             {
                 arr_Line[i].printLine();
             }
+            cout << minmax[0] << " , x" << minmax[1] << " ,y" << minmax[2] << " ,y" << minmax[3] << endl;
         }
 
         void drawInside(FramePanel* panelNormal, FramePanel* panelZoom){
@@ -158,18 +189,19 @@ class Poligon : public Shape
                 float sy = ((float)((*panelZoom).getYSize())/(float)((*panelNormal).getYSize()));
                 bool a = arr_Line[i].checkInsideFrame(*panelNormal, &line);
                 if(a){
-                    //cout << "sebel";line.printLine();
                     line.moveLine(((*panelNormal).getXMin()*(-1)), (-1)*((*panelNormal).getYMin()));
                     line.draw(panelNormal);
-                    //cout << "sesud"; line.printLine();
                     line.scaleLine(sx, sy);
                     line.draw(panelZoom); 
-                    //cout << "sesud2"; line.printLine();                   
                 }
             }
         }
 
         bool checkBitInsideRectangle(int x, int y){
+            int xmin = minmax[0];
+            int xmax = minmax[1];
+            int ymin = minmax[2];
+            int ymax = minmax[3];
             if(x >= xmin && x<= xmax){
                 if(y >= ymin && y <=ymax){
                     return true;
@@ -184,13 +216,13 @@ class Poligon : public Shape
             arr_Line.push_back(Line(Point(xmax, ymin),Point(xmax, ymax)));
             arr_Line.push_back(Line(Point(xmax, ymax),Point(xmin, ymax)));
             arr_Line.push_back(Line(Point(xmin, ymax),Point(xmin, ymin)));
-            (*this).xmin = xmin;
-            (*this).xmax = xmax;
-            (*this).ymin = ymin;
-            (*this).ymax = ymax;
+            minmax[0]=xmin;
+            minmax[1] = xmax;
+            minmax[2] = ymin;
+            minmax[3] = ymax;
         }
 
-        void floodFill(int x,int y, FramePanel * frame){
+        void floodFill(int x,int y, Framebuffer * frame){
             if((x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)){
                 int pause;
                 if(!(((*frame).checkColor(LineColor.getR(), LineColor.getG(), LineColor.getB(), x, y)) || 
@@ -201,20 +233,34 @@ class Poligon : public Shape
                     floodFill(x+1,y, frame);
                     floodFill(x,y-1, frame);
                     floodFill(x-1,y, frame);
-                }
 
+                }
             }
         }
 
+        int getxmin(){
+            return minmax[0];
+        }
+
+        int getymin(){
+            return minmax[2];
+        }
+
+        int getxmax(){
+            return minmax[1];
+        }
+
+        int getymax(){
+            return minmax[3];            
+        }
+
     private:
+        vector<int> minmax; //for rectangle
         std::vector<Line> arr_Line;
         int thickness;
         Color floodfill;
         Color LineColor;
-        int xmin; //for rectangle
-        int xmax; //for rectangle
-        int ymin; //for rectangle
-        int ymax; //for rectangle
+        
 };
 
 #endif

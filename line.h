@@ -54,6 +54,10 @@ class Line : public Shape
             thick = thickness;
         }
 
+        ~Line(){
+            
+        }
+
         Line& operator= (const Line& l){
             p1 = l.p1;
             p2 = l.p2;
