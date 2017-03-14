@@ -50,6 +50,8 @@ struct bullet
     int n;
 };
 
+std::vector<Poligon> vPoligon;
+
 vector<bullet> bullets;
 
 void clearMatrix() {
@@ -88,48 +90,18 @@ void floodFill(int x,int y,int redBatas,int greenBatas,int blueBatas,int redColo
         //(*frame).Draw();
         int pause;
         //usleep(1000);
-        if(!(((*frame).checkColor(redBatas, greenBatas, blueBatas, x, y)) || 
+        if(!(((*frame).checkColor(redBatas, greenBatas, blueBatas, x, y)) ||
             ((*frame).checkColor(redColor, greenColor, blueColor, x, y)))){
-            if(x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)    
+            if(x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)
                 (*frame).set(redColor, greenColor, blueColor, x, y);
             floodFill(x,y+1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
             floodFill(x+1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
             floodFill(x,y-1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
             floodFill(x-1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
         }
-
     }
 }
-/*
-void drawSemiCircle(int x0, int y0, int radius)
-{
-    int x = radius;
-    int y = 0;
-    int err = 0;
 
-    while (x >= y)
-    {
-        drawWhitePoint(x0 - x, y0 + y);
-        drawWhitePoint(x0 - y, y0 + x);
-        drawWhitePoint(x0 - y, y0 - x);
-        drawWhitePoint(x0 - x, y0 - y);
-
-        if (err <= 0)
-        {
-            y += 1;
-            err += 2*y + 1;
-        }
-        if (err > 0)
-        {
-            x -= 1;
-            err -= 2*x + 1;
-        }
-    }
-
-    //warnain
-    floodFill(x0-5,y0,255,255,255,255,255,0);
-}
-*/
 void drawCircle(int x0, int y0, int radius, FramePanel * frame)
 {
     int x = radius;
@@ -316,20 +288,51 @@ void addBullet(int x1, int y1, int x2, int y2 , int n)
     bullets.push_back(newBullet);
 }
 
+void addBulletLurus(int x1, int y1, int x2, int y2 , int n)
+//x1,y1 titik asal peluru
+//x2,y2 titik sampai peluru
+//n adalah pembagian tahap gerak peluru
+{
+    bullet newBullet;;
+    if(x2 - x1 == 0){
+        newBullet.m = 0;
+    }
+    newBullet.c = y1 - newBullet.m * x1;
+
+    newBullet.partisi = 0;
+    for (int i=1;i<=n;i++) {
+        newBullet.partisi += i;
+    }
+
+    newBullet.xStart = x1;
+    //newBullet.yStart = (int) floor(newBullet.m * newBullet.xStart + newBullet.c + 0.5);
+    newBullet.yStart = y1;
+    newBullet.xEnd = x1 + (x2-x1) * n / newBullet.partisi;
+    //newBullet.yEnd = (int) floor(newBullet.m * newBullet.xEnd + newBullet.c + 0.5);
+    newBullet.yEnd = y1 - 50;
+
+    newBullet.x1 = x1;
+    newBullet.x2 = x2;
+    newBullet.iteration = n;
+    newBullet.n = n;
+
+    bullets.push_back(newBullet);
+}
+
 void drawKeyShooter() {
     while(!exploded) {
         if(!detectKeyStroke()) {
             char KeyPressed = getchar();
 
             if ((KeyPressed=='A')||(KeyPressed=='a')){
-                xp--;
+                xp-=10;
             }else if ((KeyPressed=='D')||(KeyPressed=='d')){
-                xp++;
+                xp+=10;
             } else if ((KeyPressed=='W')||(KeyPressed=='w')){
                 width = width+5;
             } else if ((KeyPressed=='Q')||(KeyPressed=='q')){
                 width = width-5;
-            } 
+            }
             else if (KeyPressed==' '){
                 addBullet(posX,posY,xp+width,0,20);
                 addBullet(posX,posY,xp-width,0,20);
@@ -436,6 +439,20 @@ void drawwheel(int x1,int y1,int r,double sudut){
 
 }
 */
+
+void spawnPolygon(vector<vector<Point>> mPoint) {
+  for(int i = 0; i < mPoint.size(); i++){
+      int xmin, xmax, ymin, ymax;
+      xmin = mPoint[i][0].getX();
+      xmax = mPoint[i][0].getY();
+      ymin = mPoint[i][1].getX();
+      ymax = mPoint[i][1].getY();
+      Poligon * temp = new Poligon();
+      (*temp).drawRectangleFromMinMax(xmin, xmax, ymin, ymax);
+      vPoligon.push_back((*temp));
+  }
+}
+
 int main() {
     // mendapat screensize layar monitor
 
@@ -447,7 +464,7 @@ int main() {
     // Menulis ke layar tengah file
     //Gambar trapesium
     thread thread1(&drawKeyShooter);
-    
+
     xp = 600;
     yp = 574;
     width = 30;
@@ -455,98 +472,61 @@ int main() {
 
     int xawal = 100, yawal = 1180;
     bool left = true;
+    int npola = 5;
 
-    //Read Data
+	//Read Data
+	std::vector<std::vector<std::vector<Point>>> allmPoint;
     Parser parse;
-    parse.parseAdi("banguna");
     std::vector<std::vector<Point>> mPoint;
-    std::vector<Poligon> vPoligon;
-    mPoint = parse.getPoints();
-    for(int i = 0; i < mPoint.size(); i++){
-        int xmin, xmax, ymin, ymax;
-        xmin = mPoint[i][0].getX();
-        xmax = mPoint[i][0].getY();
-        ymin = mPoint[i][1].getX();
-        ymax = mPoint[i][1].getY();
-        Poligon * temp = new Poligon();
-        (*temp).drawRectangleFromMinMax(xmin, xmax, ymin, ymax);
-        vPoligon.push_back((*temp));
-    }
-
-    /*Debug
-    for(int i = 0; i< vPoligon.size(); i++){
-        vPoligon[i].printPolygon();
-        vPoligon[i].draw(&fb);
-    }*/
-
+    
+    for (int i=0;i<npola;i++) {
+		stringstream ss;
+		ss << "banguna" << i+1;
+		parse.parseAdi(ss.str());  
+		mPoint = parse.getPoints();
+		allmPoint.push_back(mPoint);
+	}
+    
     fb.Draw();
     int pause;
+    int moveCounter = 1;
+    int lebihGedeDariPause = 10;
+    int persen;
+	
+	int oi;
+	
     for(;;){
+        moveCounter++;
+        persen =  300/lebihGedeDariPause;
+        if(moveCounter%persen == 0) {
+			oi = rand() % npola;
+			spawnPolygon(allmPoint.at(oi));
+        }
+
         while (getPaused()) {
             if (!getPaused())
                 break;
         }
         fb.EmptyFrame();
         for(int i = 0; i< vPoligon.size(); i++){
-            if(pause > 10){
+            if(pause > 2){
                 vPoligon[i].movePolygon(0,5);
             }
             vPoligon[i].draw(&fb);
         }
-        if(pause > 10 ){
+        if(pause > lebihGedeDariPause ){
             pause  = 0;
         }
         cout << "p2" << endl;
         drawShooter(xp,yp,lastCorrectState, &fb);
-        drawBullets(&fb); 
+        drawBullets(&fb);
         cout << "p1" << endl;
         fb.Draw();
         usleep(100);
         pause++;
     }
-    
-/*
-    do {
 
-        while (getPaused()) {
-            if (!getPaused())
-                break;
-        }
-
-        clearMatrix();
-        drawFrame();
-
-        drawShooter(xp,yp,lastCorrectState);
-        drawStars();
-
-        // draw UFO
-        drawUFO(xawal, yawal);
-        if(yawal-70<=0) {
-            left = false;
-        } else if(yawal+20>=1200) {
-            left = true;
-        }
-        if (left) {
-            yawal -= 10;
-        } else {
-            yawal += 10;
-        }
-
-        // draw bullet
-        drawBullets(); 
-        DrawToScreen(); 
-        usleep(50000);
-
-
-    } while (!exploded);
-*/
     thread1.detach();
-    //clearMatrix();
-    //drawFrame();
-    //drawShooter(xp,yp,lastCorrectState);
-    //drawStars();
-    //drawExplosion2(xawal,yawal);
-    //DrawToScreen();
 
     return 0;
 }
