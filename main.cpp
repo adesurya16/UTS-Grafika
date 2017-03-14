@@ -24,6 +24,18 @@ struct fb_var_screeninfo vinfo;
 struct fb_fix_screeninfo finfo;
 char *fbp = 0;
 
+int xMinV;
+int yMinV;
+int xSizeV;
+int ySizeV;
+
+int xMinZ;
+int yMinZ;
+int xSizeZ;
+int ySizeZ;
+
+int zoomLevel;
+
 int width;
 int xp, yp;
 int redPixelMatrix[WIDTH][HEIGHT];
@@ -335,10 +347,48 @@ void drawKeyShooter() {
             else if ((KeyPressed=='P') || (KeyPressed=='p')) {
                 paused = true;
                 while (paused) {
+
                     if (!detectKeyStroke()) {
                         char KeyPressed = getchar();
                         if ((KeyPressed=='P') || (KeyPressed=='p')) {
                             paused = false;
+                        }
+
+                        // Clipping Control
+                        else if ((KeyPressed=='i') || (KeyPressed=='I')) {
+                            yMinV -= 5;
+                        }
+                        else if ((KeyPressed=='k') || (KeyPressed=='K')) {
+                            yMinV += 5;
+                        }
+                        else if ((KeyPressed=='j') || (KeyPressed=='J')) {
+                            if (xMinV>0)
+                                xMinV -=5;
+                        }
+                        else if ((KeyPressed=='l') || (KeyPressed=='L')) {
+                            if (xMinV<800)
+                                xMinV +=5;
+                        }
+
+                        // Zoom Control
+                        else if ((KeyPressed=='z') || (KeyPressed=='Z')) {
+                            if (zoomLevel >(-3)) {
+                                zoomLevel--;
+                                xMinV +=10;
+                                yMinV +=10;
+                                xSizeV -=20;
+                                ySizeV -=20;
+                            }
+
+                        }
+                        else if ((KeyPressed=='x') || (KeyPressed=='X')) {
+                            if (zoomLevel <3) {
+                                zoomLevel++;
+                                xMinV -=10;
+                                yMinV -=10;
+                                xSizeV +=20;
+                                ySizeV +=20;
+                            }
                         }
                     }
                 }
@@ -416,11 +466,26 @@ int main() {
 
     // Map the device to memory
     Framebuffer fb;
+    
+    xSizeV = 100;
+    ySizeV = 100;
+    xMinV = 10;
+    yMinV = 10;
+
+    xSizeZ = 300;
+    ySizeZ = 300;
+    xMinZ = fb.getXSize()/2;
+    yMinZ = fb.getYSize()/2;
+
+    zoomLevel = 0;
+
+    FramePanel fview(xSizeV, ySizeV, xMinV, xMinZ);
+    FramePanel fzoom(xSizeZ, ySizeZ, xMinZ, yMinZ);
+    
+
+
     fbp = fb.getfbp();
 
-    //display merge center
-    // Menulis ke layar tengah file
-    //Gambar trapesium
     thread thread1(&drawKeyShooter);
     
     xp = 600;
@@ -453,11 +518,30 @@ int main() {
     int pause;
     for(;;){
         while (getPaused()) {
+            fview.setXMin(xMinV);
+            fview.setYMin(yMinV);
+            fview.setXSize(xSizeV);
+            fview.setYSize(ySizeV);
+
+            std::vector<Poligon>::iterator it = vPoligon.begin();
+            while(it != vPoligon.end()){
+                (*it).drawInside(&fview, &fzoom);
+                (*it).draw(&fb);
+
+                it++;
+            }
+            fb.drawFrame(fview);
+            fb.drawFrame(fzoom);
+            fb.Draw();
+            fb.EmptyFrame();
+            fview.EmptyFrame();
+            fzoom.EmptyFrame();
             if (!getPaused())
                 break;
         }
         fb.EmptyFrame();
         std::vector<Poligon>::iterator it = vPoligon.begin();
+        //Draw Polygon
         while(it != vPoligon.end()){
             bool checkDraw = true;
             if(pause > 5){
@@ -482,13 +566,17 @@ int main() {
                 it = vPoligon.erase(it);
             }
         }
+
+        //Draw Shooter and Bullets
+        drawShooter(xp,yp,lastCorrectState, &fb);
+        drawBullets(&fb); 
+        //Draw All
+        fb.Draw();
+        
+        usleep(100);
         if(pause > 10 ){
             pause  = 0;
         }
-        drawShooter(xp,yp,lastCorrectState, &fb);
-        drawBullets(&fb); 
-        fb.Draw();
-        usleep(100);
         pause++;
     }
     thread1.detach();
