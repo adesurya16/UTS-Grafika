@@ -503,7 +503,6 @@ int main() {
     int moveCounter = 1;
     int lebihGedeDariPause = 10;
     int persen;
-    
     int oi;
 
 
