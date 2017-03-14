@@ -50,7 +50,10 @@ struct bullet
     int n;
 };
 
+std::vector<Poligon> vPoligon;
+
 vector<bullet> bullets;
+vector<vector<Poligon>> vKotak;
 
 void clearMatrix() {
     for (int i = 0; i < 600; ++i)
@@ -88,9 +91,9 @@ void floodFill(int x,int y,int redBatas,int greenBatas,int blueBatas,int redColo
         //(*frame).Draw();
         int pause;
         //usleep(1000);
-        if(!(((*frame).checkColor(redBatas, greenBatas, blueBatas, x, y)) || 
+        if(!(((*frame).checkColor(redBatas, greenBatas, blueBatas, x, y)) ||
             ((*frame).checkColor(redColor, greenColor, blueColor, x, y)))){
-            if(x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)    
+            if(x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)
                 (*frame).set(redColor, greenColor, blueColor, x, y);
             floodFill(x,y+1,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
             floodFill(x+1,y,redBatas,greenBatas,blueBatas,redColor,greenColor,blueColor, frame);
@@ -100,36 +103,7 @@ void floodFill(int x,int y,int redBatas,int greenBatas,int blueBatas,int redColo
 
     }
 }
-/*
-void drawSemiCircle(int x0, int y0, int radius)
-{
-    int x = radius;
-    int y = 0;
-    int err = 0;
 
-    while (x >= y)
-    {
-        drawWhitePoint(x0 - x, y0 + y);
-        drawWhitePoint(x0 - y, y0 + x);
-        drawWhitePoint(x0 - y, y0 - x);
-        drawWhitePoint(x0 - x, y0 - y);
-
-        if (err <= 0)
-        {
-            y += 1;
-            err += 2*y + 1;
-        }
-        if (err > 0)
-        {
-            x -= 1;
-            err -= 2*x + 1;
-        }
-    }
-
-    //warnain
-    floodFill(x0-5,y0,255,255,255,255,255,0);
-}
-*/
 void drawCircle(int x0, int y0, int radius, FramePanel * frame)
 {
     int x = radius;
@@ -319,14 +293,14 @@ void drawKeyShooter() {
             char KeyPressed = getchar();
 
             if ((KeyPressed=='A')||(KeyPressed=='a')){
-                xp--;
+                xp -= 10;
             }else if ((KeyPressed=='D')||(KeyPressed=='d')){
-                xp++;
+                xp += 10;
             } else if ((KeyPressed=='W')||(KeyPressed=='w')){
                 width = width+5;
             } else if ((KeyPressed=='Q')||(KeyPressed=='q')){
                 width = width-5;
-            } 
+            }
             else if (KeyPressed==' '){
                 addBullet(posX,posY,xp+width,0,20);
                 addBullet(posX,posY,xp-width,0,20);
@@ -372,7 +346,7 @@ void drawBullets(FramePanel * fp) {
     }
 }
 
-void moveBounce(double* x, double* y, double* vx, double* vy, int yground) {
+void moveBounce(double* y, double* x, double* vy, double* vx, int yground) {
 
   double a = 10;
 
@@ -411,6 +385,84 @@ void moveBounce(double* x, double* y, double* vx, double* vy, int yground) {
   *vy = vy2;
 }
 
+void drawwheel(int x1,int y1,int r,double sudut,FramePanel *fp){
+// r > 20
+//(0,)
+
+  int x2 = r-20;
+  int y2 = 0;
+
+  int x3 = 0;
+  int y3 = r-20;
+
+  int x22 = round(x2 * cos(sudut) - y2 * sin(sudut));
+  int y22 = round(x2 * sin(sudut) + y2 * cos(sudut));
+
+  int x32 = round(x3 * cos(sudut) - y3 * sin(sudut));
+  int y32 = round(x3 * sin(sudut) + y3 * cos(sudut));
+
+  drawCircle(x1,y1,r-20,fp);
+  drawWhiteLine(x1+x22,y1+y22,x1-x22,y1-y22,fp);
+  drawWhiteLine(x1+x32,y1+y32,x1-x32,y1-y32,fp);
+//gambar 2 garis didalam roda
+}
+
+void fall(int x,int y){
+  int jatuh = 0;
+  double xw1 = x;
+  double yw1 = y;
+  double vxw1 = 0;
+  double vyw1 = 10;
+  int angle1 = 0;
+  vector<Poligon> vPergerakan;
+  while(jatuh<100){
+    moveBounce(&yw1, &xw1, &vyw1, &vxw1, 800);
+    // yw1++;
+    // xw1++;
+    // vyw1++;
+    // vxw1++;
+
+    Poligon pl;
+    int xmin = round(xw1) - 10;
+    int xmax = round(xw1) + 10;
+    int ymin = round(yw1) - 10;
+    int ymax = round(yw1) + 10;
+    pl.rotate(xmin,xmax,ymin,ymax,angle1);
+    //cout << xmin << "AAAAAAAAAAAAAAAAAAAAAAAAAA" << endl;
+    //drawwheel(round(xw1), round(yw1), 30, angle1*M_PI/10,fp);
+    angle1 = (angle1+1)%10;
+    jatuh++;
+
+    vPergerakan.push_back(pl);
+  }
+  vKotak.push_back(vPergerakan);
+}
+
+void pecahanjatuh(){
+    while(true){
+      /*
+        for(int i=0;i<pecahan.size();i++){
+          pecahan.push_back();
+        }
+        */
+    }
+}
+
+
+void spawnPolygon(vector<vector<Point>> mPoint) {
+  for(int i = 0; i < mPoint.size(); i++){
+      int xmin, xmax, ymin, ymax;
+      xmin = mPoint[i][0].getX();
+      xmax = mPoint[i][0].getY();
+      ymin = mPoint[i][1].getX();
+      ymax = mPoint[i][1].getY();
+      Poligon * temp = new Poligon();
+      (*temp).drawRectangleFromMinMax(xmin, xmax, ymin, ymax);
+      vPoligon.push_back((*temp));
+  }
+}
+
+
 int main() {
     // mendapat screensize layar monitor
 
@@ -422,7 +474,7 @@ int main() {
     // Menulis ke layar tengah file
     //Gambar trapesium
     thread thread1(&drawKeyShooter);
-    
+
     xp = 600;
     yp = 574;
     width = 30;
@@ -431,36 +483,51 @@ int main() {
     int xawal = 100, yawal = 1180;
     bool left = true;
 
-    //Read Data
-    Parser parse;
-    parse.parseAdi("banguna");
-    std::vector<std::vector<Point>> mPoint;
-    std::vector<Poligon> vPoligon;
-    mPoint = parse.getPoints();
-    for(int i = 0; i < mPoint.size(); i++){
-        int xmin, xmax, ymin, ymax;
-        xmin = mPoint[i][0].getX();
-        xmax = mPoint[i][0].getY();
-        ymin = mPoint[i][1].getX();
-        ymax = mPoint[i][1].getY();
-        Poligon * temp = new Poligon();
-        (*temp).drawRectangleFromMinMax(xmin, xmax, ymin, ymax);
-        (*temp).printPolygon();
-        vPoligon.push_back((*temp));
-    }
+    int npola = 5;
 
+    //Read Data
+    std::vector<std::vector<std::vector<Point>>> allmPoint;
+    Parser parse;
+    std::vector<std::vector<Point>> mPoint;
+    
+    for (int i=0;i<npola;i++) {
+        stringstream ss;
+        ss << "banguna" << i+1;
+        parse.parseAdi(ss.str());  
+        mPoint = parse.getPoints();
+        allmPoint.push_back(mPoint);
+    }
+    
     fb.Draw();
     int pause;
+    int moveCounter = 1;
+    int lebihGedeDariPause = 10;
+    int persen;
+    
+    int oi;
+
+
     for(;;){
+        moveCounter++;
+        persen =  300/lebihGedeDariPause;
+        if(moveCounter%persen == 0) {
+            oi = rand() % npola;
+            spawnPolygon(allmPoint.at(oi));
+        }
+
         while (getPaused()) {
-            if (!getPaused())
-                break;
+            if (!getPaused()){
+
+              break;
+            }
+
         }
         fb.EmptyFrame();
         std::vector<Poligon>::iterator it = vPoligon.begin();
         while(it != vPoligon.end()){
             bool checkDraw = true;
             if(pause > 5){
+                //cout << "hhh" << endl;
                 (*it).movePolygon(0,5);
             }
             std::vector<bullet>::iterator itbullet = bullets.begin();
@@ -479,18 +546,36 @@ int main() {
                 (*it).floodFill(xo, yo, &fb);
                 ++it;
             }else{
+                Poligon tertembak = (*it);
+                int xawalpecahan = (tertembak.getxmax()-tertembak.getxmin())/2+tertembak.getxmin();
+                int yawalpecahan = (tertembak.getymax()-tertembak.getymin())/2+tertembak.getymin();
                 it = vPoligon.erase(it);
+                fall(xawalpecahan, yawalpecahan);
+                //thread threadpecahan(&fall,xawalpecahan,yawalpecahan,&fb);
+                //cout << xawalpecahan << " " << yawalpecahan <<endl;
             }
         }
-        if(pause > 10 ){
+        if(pause > lebihGedeDariPause ){
             pause  = 0;
         }
+        for (int i=0; i<vKotak.size(); i++) {
+          if(!vKotak[i].empty()) {
+              Poligon pl = vKotak[i][0];
+              //cout << i << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << endl;
+              //pl.printPolygon();
+              pl.draw(&fb);
+              //vKotak[i].pop_back();
+              vKotak[i].erase(vKotak[i].begin());
+          }
+          //vKotak[i].
+        }
         drawShooter(xp,yp,lastCorrectState, &fb);
-        drawBullets(&fb); 
+        drawBullets(&fb);
         fb.Draw();
         usleep(100);
         pause++;
     }
+    //threadpecahan.detach();
     thread1.detach();
 
     return 0;

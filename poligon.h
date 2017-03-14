@@ -91,10 +91,10 @@ class Poligon : public Shape
                 ax.draw(a);
             }
             //cout << "draw" << endl;
-           
+
         }
 
-       
+
 
         Color getLineColor(){
             return LineColor;
@@ -154,7 +154,7 @@ class Poligon : public Shape
             arr_Line.push_back(e);
             (*this).setLineColor(Color::GREEN);
             (*this).setThickness(1);
-            
+
             setAllLineColor();
         }
 
@@ -192,7 +192,7 @@ class Poligon : public Shape
                     line.moveLine(((*panelNormal).getXMin()*(-1)), (-1)*((*panelNormal).getYMin()));
                     line.draw(panelNormal);
                     line.scaleLine(sx, sy);
-                    line.draw(panelZoom); 
+                    line.draw(panelZoom);
                 }
             }
         }
@@ -222,12 +222,38 @@ class Poligon : public Shape
             minmax[3] = ymax;
         }
 
+        void rotate(int xmin, int xmax, int ymin, int ymax,int sudut){
+            int xpusat = xmin + (xmax-xmin)/2;
+            int ypusat = ymin + (ymax-ymin)/2;
+            int x1,y1;
+            int x2,y2;
+            int x3,y3;
+            int x4,y4;
+            x1 = xpusat + round((xmin-xpusat) * cos(sudut) - (ymin-ypusat) * sin(sudut));
+            y1 = ypusat + round((xmin-xpusat) * sin(sudut) + (ymin-ypusat) * cos(sudut));
+
+            x2 = xpusat + round((xmax-xpusat) * cos(sudut) - (ymin-ypusat) * sin(sudut));
+            y2 = ypusat + round((xmax-xpusat) * sin(sudut) + (ymin-ypusat) * cos(sudut));
+
+            x3 = xpusat + round((xmax-xpusat) * cos(sudut) - (ymax-ypusat) * sin(sudut));
+            y3 = ypusat + round((xmax-xpusat) * sin(sudut) + (ymax-ypusat) * cos(sudut));
+
+            x4 = xpusat + round((xmin-xpusat) * cos(sudut) - (ymax-ypusat) * sin(sudut));
+            y4 = ypusat + round((xmin-xpusat) * sin(sudut) + (ymax-ypusat) * cos(sudut));
+
+            arr_Line.push_back(Line(Point(x1, y1),Point(x2, y2)));
+            arr_Line.push_back(Line(Point(x2, y2),Point(x3, y3)));
+            arr_Line.push_back(Line(Point(x3, y3),Point(x4, y4)));
+            arr_Line.push_back(Line(Point(x4, y4),Point(x1, y1)));
+        }
+
+
         void floodFill(int x,int y, Framebuffer * frame){
             if((x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)){
                 int pause;
-                if(!(((*frame).checkColor(LineColor.getR(), LineColor.getG(), LineColor.getB(), x, y)) || 
+                if(!(((*frame).checkColor(LineColor.getR(), LineColor.getG(), LineColor.getB(), x, y)) ||
                     ((*frame).checkColor(floodfill.getR(), floodfill.getG(), floodfill.getB(), x, y)))){
-                    if(x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)    
+                    if(x < (*frame).getXSize() && y < (*frame).getYSize() && x > 0 && y > 0)
                         (*frame).set(floodfill.getR(), floodfill.getG(), floodfill.getB(), x, y);
                     floodFill(x,y+1, frame);
                     floodFill(x+1,y, frame);
@@ -251,7 +277,7 @@ class Poligon : public Shape
         }
 
         int getymax(){
-            return minmax[3];            
+            return minmax[3];
         }
 
     private:
@@ -260,7 +286,7 @@ class Poligon : public Shape
         int thickness;
         Color floodfill;
         Color LineColor;
-        
+
 };
 
 #endif
