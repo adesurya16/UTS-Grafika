@@ -84,10 +84,9 @@ void drawWhitePoint(int x1, int y1, FramePanel * fb) {
         (*fb).set(255,255,255,x1, y1);
 }
 
-void drawRedPoint(int x1,int y1){
-    redPixelMatrix[x1][y1] = 255;
-    greenPixelMatrix[x1][y1] = 0;
-    bluePixelMatrix[x1][y1] = 0;
+void drawRedPoint(int x1, int y1, FramePanel * fb) {
+    if(x1 < (*fb).getXSize() && y1 < (*fb).getYSize() && x1 > 0 && y1 > 0)
+        (*fb).set(255,0,0,x1, y1);
 }
 
 void drawBlackPoint(int x1,int y1){
@@ -132,6 +131,36 @@ void drawCircle(int x0, int y0, int radius, FramePanel * frame)
         drawWhitePoint(x0 + y, y0 + x, frame);
         drawWhitePoint(x0 + y, y0 - x, frame);
         drawWhitePoint(x0 + x, y0 - y, frame);
+
+        if (err <= 0)
+        {
+            y += 1;
+            err += 2*y + 1;
+        }
+        if (err > 0)
+        {
+            x -= 1;
+            err -= 2*x + 1;
+        }
+    }
+}
+
+void drawCircleRed(int x0, int y0, int radius, FramePanel * frame)
+{
+    int x = radius;
+    int y = 0;
+    int err = 0;
+
+    while (x >= y)
+    {
+        drawRedPoint(x0 - x, y0 + y, frame);
+        drawRedPoint(x0 - y, y0 + x, frame);
+        drawRedPoint(x0 - y, y0 - x, frame);
+        drawRedPoint(x0 - x, y0 - y, frame);
+        drawRedPoint(x0 + x, y0 + y, frame);
+        drawRedPoint(x0 + y, y0 + x, frame);
+        drawRedPoint(x0 + y, y0 - x, frame);
+        drawRedPoint(x0 + x, y0 - y, frame);
 
         if (err <= 0)
         {
@@ -234,13 +263,16 @@ void drawShooter(int xp, int yp, char mode, Framebuffer * frame) {
 
     posX = xp;
     posY = 500;
-    drawCircle(xp,yp,25, frame);
-    floodFill(xp, yp, 255, 255, 255, 255, 0, 0, frame);
     drawWhiteLine(xp+20,yp-15,xp+20,yp-50, frame);
     drawWhiteLine(xp-20,yp-15,xp-20,yp-50, frame);
     drawWhiteLine(xp+20,yp-50,xp-20,yp-50, frame);
+    drawWhiteLine(xp-20,yp-15,xp+20,yp-15, frame);
+
     floodFill(xp+10, yp-30, 255, 255, 255, 0, 0, 255, frame);
 
+
+    drawCircleRed(xp,yp,25, frame);
+    floodFill(xp, yp, 255, 0, 0, 255, 0, 0, frame);
 }
 
 void DrawToScreen(){
@@ -656,7 +688,7 @@ int main() {
         fb.Draw();
         
         usleep(100);
-        if(pause > 10 ){
+        if(pause > lebihGedeDariPause ){
             pause  = 0;
         }
         pause++;
